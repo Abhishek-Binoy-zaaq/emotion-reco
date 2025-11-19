@@ -1,0 +1,5 @@
+/media
+/venv
+/tutorials/__pycache__/
+/quickstart/__pycache__/
+quickstart/migrations/__pycache__/
