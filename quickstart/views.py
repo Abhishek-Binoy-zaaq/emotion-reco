@@ -5,13 +5,14 @@ from django.shortcuts import render, redirect
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils import timezone
 from django.db.models import Count, Avg
+from django.contrib import messages
 from rest_framework import permissions, viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
-from .models import UploadedImage, VideoSession, CapturedFrame, Video, VideoCategory
+from .models import UploadedImage, VideoSession, CapturedFrame, Video, VideoCategory, UserProfile
 from .serializers import (
     GroupSerializer, UserSerializer, UploadedImageSerializer,
     VideoSessionSerializer, VideoSessionCreateSerializer, 
@@ -26,6 +27,61 @@ def is_admin(user):
 
 
 # Authentication Views
+@ensure_csrf_cookie
+def signup_view(request):
+    """User signup page"""
+    if request.user.is_authenticated:
+        if request.user.is_staff:
+            return redirect('admin_dashboard')
+        return redirect('user_dashboard')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        first_name = request.POST.get('first_name', '')
+        last_name = request.POST.get('last_name', '')
+        password = request.POST.get('password')
+        password_confirm = request.POST.get('password_confirm')
+        
+        # Validation
+        if not username or not email or not password:
+            messages.error(request, 'Username, email, and password are required.')
+            return render(request, 'quickstart/signup.html')
+        
+        if password != password_confirm:
+            messages.error(request, 'Passwords do not match.')
+            return render(request, 'quickstart/signup.html')
+        
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'Username already exists.')
+            return render(request, 'quickstart/signup.html')
+        
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'Email already registered.')
+            return render(request, 'quickstart/signup.html')
+        
+        # Create user
+        try:
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name
+            )
+            
+            # Auto-login after signup
+            login(request, user)
+            messages.success(request, f'Welcome {username}! Your account has been created successfully.')
+            return redirect('user_dashboard')
+            
+        except Exception as e:
+            messages.error(request, 'Error creating account. Please try again.')
+            return render(request, 'quickstart/signup.html')
+    
+    return render(request, 'quickstart/signup.html')
+
+
 @ensure_csrf_cookie
 def login_view(request):
     """Login page"""
@@ -299,17 +355,43 @@ class CapturedFrameViewSet(viewsets.ModelViewSet):
     
     def create(self, request, *args, **kwargs):
         """Create a new captured frame and analyze it"""
+        from .models import PreprocessedImage
+        
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instance = serializer.save()
         
-        # Analyze the captured frame
-        analysis_result = EmotionDetectionService.analyze_image(instance.image.path)
+        # Analyze the captured frame (and save cropped face if found)
+        analysis_result = EmotionDetectionService.analyze_image(
+            instance.image.path,
+            save_preprocessed=True
+        )
         
         if analysis_result['success']:
             instance.expression = analysis_result['expression']
             instance.expression_confidence = analysis_result['confidence']
             instance.all_expressions = analysis_result['all_emotions']
+            
+            # Save preprocessed image to separate model if it was generated
+            preprocessed_path = analysis_result.get('preprocessed_path')
+            if preprocessed_path:
+                try:
+                    # Create PreprocessedImage instance
+                    # We need to get the relative path for ImageField
+                    # ImagePreprocessor returns full path
+                    import os
+                    from django.conf import settings
+                    
+                    rel_path = os.path.relpath(preprocessed_path, settings.MEDIA_ROOT)
+                    
+                    PreprocessedImage.objects.create(
+                        capture=instance,
+                        image=rel_path
+                    )
+                    print(f"[OK] Saved preprocessed image to model: {rel_path}", flush=True)
+                except Exception as e:
+                    print(f"[FAIL] Failed to save preprocessed image model: {e}", flush=True)
+                    
         else:
             instance.expression = 'error'
             instance.all_expressions = {'error': analysis_result['error']}

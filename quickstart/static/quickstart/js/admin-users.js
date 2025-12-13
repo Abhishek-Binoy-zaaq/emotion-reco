@@ -1,44 +1,81 @@
 let editingUserId = null;
+let allUsers = [];
 
 async function loadUsers() {
     try {
         const response = await fetch('/api/users/');
         const data = await response.json();
-        const users = data.results || data;
+        allUsers = data.results || data;
         
-        const tbody = document.getElementById('usersBody');
-        
-        if (!users || users.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">No users found. Click "Create User" to add one.</td></tr>';
-            return;
-        }
-        
-        tbody.innerHTML = users.map(user => `
+        updateStats();
+        renderUsers(allUsers);
+    } catch (error) {
+        console.error('Error loading users:', error);
+        document.getElementById('usersBody').innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">⚠️</div><div>Error loading users. Please refresh the page.</div></td></tr>';
+    }
+}
+
+function updateStats() {
+    const total = allUsers.length;
+    const active = allUsers.filter(u => u.is_active).length;
+    const inactive = total - active;
+    
+    document.getElementById('totalUsers').textContent = total;
+    document.getElementById('activeUsers').textContent = active;
+    document.getElementById('inactiveUsers').textContent = inactive;
+}
+
+function renderUsers(users) {
+    const tbody = document.getElementById('usersBody');
+    
+    if (!users || users.length === 0) {
+        tbody.innerHTML = `
             <tr>
-                <td>${user.id}</td>
-                <td>${user.username}</td>
-                <td>${user.email || 'N/A'}</td>
-                <td>${user.first_name || ''} ${user.last_name || ''}</td>
+                <td colspan="7" class="empty-state">
+                    <div class="empty-state-icon">👥</div>
+                    <div style="font-size: 1.2em; margin-bottom: 10px;">No users found</div>
+                    <div>Click "Create User" to add your first user</div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = users.map(user => {
+        const fullName = [user.first_name, user.last_name].filter(n => n).join(' ') || '-';
+        
+        return `
+            <tr>
+                <td><strong>#${user.id}</strong></td>
                 <td>
-                    <span style="color: ${user.is_active ? '#28a745' : '#dc3545'}">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 1.5em;">👤</span>
+                        <strong>${escapeHtml(user.username)}</strong>
+                    </div>
+                </td>
+                <td>${escapeHtml(user.email) || '<span style="color: var(--text-light);">No email</span>'}</td>
+                <td>${escapeHtml(fullName)}</td>
+                <td>
+                    <span class="status-badge ${user.is_active ? 'status-active' : 'status-inactive'}">
                         ${user.is_active ? '✓ Active' : '✗ Inactive'}
                     </span>
                 </td>
-                <td>-</td>
-                <td>
-                    <button class="btn" style="padding: 8px 12px; margin: 2px;" onclick="editUser(${user.id}, '${escapeHtml(user.username)}', '${escapeHtml(user.email || '')}', '${escapeHtml(user.first_name || '')}', '${escapeHtml(user.last_name || '')}', ${user.is_active})">✏️ Edit</button>
-                    ${user.is_active ? 
-                        `<button class="btn" style="padding: 8px 12px; margin: 2px; background: #ffc107;" onclick="toggleUserStatus(${user.id}, false, '${escapeHtml(user.username)}')">🔒 Disable</button>` :
-                        `<button class="btn" style="padding: 8px 12px; margin: 2px; background: #28a745;" onclick="toggleUserStatus(${user.id}, true, '${escapeHtml(user.username)}')">🔓 Enable</button>`
-                    }
-                    <button class="btn btn-danger" style="padding: 8px 12px; margin: 2px;" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')">🗑️ Delete</button>
+                <td><span style="color: var(--text-secondary);">-</span></td>
+                <td class="actions-column">
+                    <div class="action-buttons">
+                        <button class="btn btn-primary btn-action" onclick="editUser(${user.id}, '${escapeHtml(user.username)}', '${escapeHtml(user.email || '')}', '${escapeHtml(user.first_name || '')}', '${escapeHtml(user.last_name || '')}', ${user.is_active})">
+                            ✏️ Edit
+                        </button>
+                        ${user.is_active ? 
+                            `<button class="btn btn-disable btn-action" onclick="toggleUserStatus(${user.id}, false, '${escapeHtml(user.username)}')">🔒 Disable</button>` :
+                            `<button class="btn btn-enable btn-action" onclick="toggleUserStatus(${user.id}, true, '${escapeHtml(user.username)}')">🔓 Enable</button>`
+                        }
+                        <button class="btn btn-danger btn-action" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')">🗑️ Delete</button>
+                    </div>
                 </td>
             </tr>
-        `).join('');
-    } catch (error) {
-        console.error('Error loading users:', error);
-        document.getElementById('usersBody').innerHTML = '<tr><td colspan="7" style="text-align: center; color: #dc3545; padding: 20px;">Error loading users</td></tr>';
-    }
+        `;
+    }).join('');
 }
 
 function escapeHtml(text) {
@@ -103,20 +140,16 @@ document.getElementById('userForm').addEventListener('submit', async (e) => {
         if (response.ok) {
             closeUserModal();
             loadUsers();
-            alert(editingUserId ? 'User updated successfully!' : 'User created successfully!');
         } else {
             const error = await response.json();
-            alert('Error: ' + JSON.stringify(error));
+            console.error('Error:', error);
         }
     } catch (error) {
-        alert('Error: ' + error.message);
+        console.error('Error:', error.message);
     }
 });
 
 async function toggleUserStatus(userId, newStatus, username) {
-    const action = newStatus ? 'enable' : 'disable';
-    if (!confirm(`Are you sure you want to ${action} user "${username}"?`)) return;
-    
     try {
         const response = await fetch(`/api/users/${userId}/`, {
             method: 'PATCH',
@@ -128,13 +161,12 @@ async function toggleUserStatus(userId, newStatus, username) {
         });
         
         if (response.ok) {
-            alert(`User ${action}d successfully!`);
-            loadUsers();
+            loadUsers(); // Refresh the user list immediately
         } else {
-            alert('Error updating user status');
+            console.error('Error updating user status');
         }
     } catch (error) {
-        alert('Error: ' + error.message);
+        console.error('Error:', error.message);
     }
 }
 
@@ -150,13 +182,12 @@ async function deleteUser(userId, username) {
         });
         
         if (response.ok) {
-            alert('User deleted successfully!');
-            loadUsers();
+            loadUsers(); // Refresh the user list immediately
         } else {
-            alert('Error deleting user');
+            console.error('Error deleting user');
         }
     } catch (error) {
-        alert('Error: ' + error.message);
+        console.error('Error:', error.message);
     }
 }
 
@@ -175,4 +206,30 @@ function getCookie(name) {
     return cookieValue;
 }
 
-loadUsers();
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            if (!searchTerm) {
+                renderUsers(allUsers);
+                return;
+            }
+            
+            const filtered = allUsers.filter(user => {
+                const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
+                return user.username.toLowerCase().includes(searchTerm) ||
+                       (user.email && user.email.toLowerCase().includes(searchTerm)) ||
+                       fullName.includes(searchTerm);
+            });
+            
+            renderUsers(filtered);
+        });
+    }
+    
+    // Load users
+    loadUsers();
+});

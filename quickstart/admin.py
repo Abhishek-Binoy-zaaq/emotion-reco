@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import UploadedImage, VideoSession, CapturedFrame, Video, VideoCategory
+from .models import UploadedImage, VideoSession, CapturedFrame, Video, VideoCategory, PreprocessedImage
 
 
 @admin.register(VideoCategory)
@@ -102,3 +102,20 @@ class CapturedFrameAdmin(admin.ModelAdmin):
             return format_html('<img src="{}" style="max-height: 100px; max-width: 200px;" />', obj.image.url)
         return "No image"
     image_preview.short_description = 'Preview'
+
+
+@admin.register(PreprocessedImage)
+class PreprocessedImageAdmin(admin.ModelAdmin):
+    list_display = ['id', 'get_capture_id', 'image_preview', 'created_at']
+    readonly_fields = ['created_at', 'image_preview', 'capture']
+    
+    def get_capture_id(self, obj):
+        return f"Capture {obj.capture.id}"
+    get_capture_id.short_description = 'Original Capture'
+    
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="max-height: 100px; max-width: 200px;" />', obj.image.url)
+        return "No image"
+    image_preview.short_description = 'Preview'
+
