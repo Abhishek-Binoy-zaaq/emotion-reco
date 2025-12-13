@@ -219,3 +219,32 @@ th {
 tr:hover {
     background: #f8f9fa;
 }
+
+
+@media (max-width: 768px) {
+    .container {
+        max-width: 100%; 
+        padding: 0 15px; 
+    }
+
+    .videos-grid {
+
+        grid-template-columns: 1fr; 
+        gap: 15px;
+    }
+
+    .dashboard-boxes-parent { 
+        display: flex;
+        flex-direction: column; 
+    }
+    
+    .dashboard-boxes-child {
+        width: 100%; 
+        margin-bottom: 15px; 
+    }
+
+    .table-container { 
+        overflow-x: auto; 
+    }
+}
+

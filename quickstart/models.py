@@ -3,6 +3,18 @@ from django.contrib.auth.models import User
 import json
 
 
+class UserProfile(models.Model):
+    """Extended user profile for approval system"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    is_approved = models.BooleanField(default=False, help_text="Admin approval status")
+    signup_date = models.DateTimeField(auto_now_add=True)
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_users')
+    approved_at = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.user.username} - {'Approved' if self.is_approved else 'Pending'}"
+
+
 class VideoCategory(models.Model):
     """Categories for organizing videos"""
     name = models.CharField(max_length=100, unique=True)
@@ -119,6 +131,17 @@ class CapturedFrame(models.Model):
     
     class Meta:
         ordering = ['timestamp']
+
+
+class PreprocessedImage(models.Model):
+    """Represents the preprocessed (cropped) face from a captured frame"""
+    capture = models.OneToOneField(CapturedFrame, on_delete=models.CASCADE, related_name='preprocessed_version')
+    image = models.ImageField(upload_to='preprocessed/')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Preprocessed frame {self.capture.id}"
+
 
 
 class UploadedImage(models.Model):

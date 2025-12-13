@@ -3,3 +3,5 @@
 /tutorials/__pycache__/
 /quickstart/__pycache__/
 quickstart/migrations/__pycache__/
+/requirements.cpython-313.pyc
+*.sqlite3

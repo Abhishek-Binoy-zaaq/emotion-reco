@@ -11,12 +11,13 @@ class EmotionDetectionService:
     BACKENDS = ['opencv', 'ssd', 'retinaface']
     
     @staticmethod
-    def analyze_image(image_path):
+    def analyze_image(image_path, save_preprocessed=False):
         """
         Analyze an image for facial expressions
         
         Args:
             image_path: Path to the image file
+            save_preprocessed: Whether to save the preprocessed (cropped) image
             
         Returns:
             dict: {
@@ -24,9 +25,12 @@ class EmotionDetectionService:
                 'expression': str,
                 'confidence': float,
                 'all_emotions': dict,
+                'preprocessed_path': str,
                 'error': str (if failed)
             }
         """
+        from .image_preprocessing import ImagePreprocessor
+        
         print(f"\n=== ANALYZING IMAGE: {image_path} ===", flush=True)
         sys.stdout.flush()
         
@@ -35,10 +39,28 @@ class EmotionDetectionService:
             'expression': None,
             'confidence': None,
             'all_emotions': None,
+            'preprocessed_path': None,
             'error': None
         }
         
         try:
+            # Step 1: Preprocess image (Detect & Crop Face)
+            preprocess_result = ImagePreprocessor.preprocess_image(
+                image_path, 
+                save_preprocessed=save_preprocessed
+            )
+            
+            if not preprocess_result['success']:
+                print(f"✗ Preprocessing failed: {preprocess_result['error']}", flush=True)
+                result_data['error'] = preprocess_result['error']
+                return result_data
+            
+            # Save the preprocessed path if available
+            result_data['preprocessed_path'] = preprocess_result.get('preprocessed_path')
+            
+            # Step 2: Analyze the cropped face
+            preprocessed_image = preprocess_result['preprocessed_image']
+            
             result = None
             last_error = None
             
@@ -49,20 +71,20 @@ class EmotionDetectionService:
                     sys.stdout.flush()
                     
                     result = DeepFace.analyze(
-                        img_path=image_path,
+                        img_path=preprocessed_image,
                         actions=['emotion'],
-                        enforce_detection=False,
+                        enforce_detection=False, # Detection already done in preprocessing
                         detector_backend=backend,
                         silent=True
                     )
                     
-                    print(f"✓ Success with backend: {backend}", flush=True)
+                    print(f"[OK] Success with backend: {backend}", flush=True)
                     sys.stdout.flush()
                     break
                     
                 except Exception as e:
                     last_error = str(e)
-                    print(f"✗ Backend {backend} failed: {e}", flush=True)
+                    print(f"[FAIL] Backend {backend} failed: {e}", flush=True)
                     sys.stdout.flush()
                     continue
             
@@ -76,8 +98,8 @@ class EmotionDetectionService:
             emotions = result.get('emotion', {})
             dominant_emotion = result.get('dominant_emotion', 'unknown')
             
-            print(f"🎭 Detected emotion: {dominant_emotion}", flush=True)
-            print(f"📊 All emotions: {emotions}", flush=True)
+            print(f"[RESULT] Detected emotion: {dominant_emotion}", flush=True)
+            print(f"[STATS] All emotions: {emotions}", flush=True)
             sys.stdout.flush()
             
             # Convert numpy types to Python native types
@@ -88,16 +110,16 @@ class EmotionDetectionService:
                 result_data['expression'] = dominant_emotion
                 result_data['confidence'] = float(emotions.get(dominant_emotion, 0))
                 result_data['all_emotions'] = emotions_serializable
-                print(f"✓ Analysis complete: {dominant_emotion}", flush=True)
+                print(f"[OK] Analysis complete: {dominant_emotion}", flush=True)
             else:
                 result_data['error'] = 'No face detected in image'
-                print(f"✗ No face detected", flush=True)
+                print(f"[FAIL] No face detected", flush=True)
             
             sys.stdout.flush()
             
         except Exception as e:
             error_msg = str(e)
-            print(f"\n❌ ERROR in face detection: {error_msg}", flush=True)
+            print(f"\n[ERROR] ERROR in face detection: {error_msg}", flush=True)
             sys.stdout.flush()
             result_data['error'] = error_msg
         

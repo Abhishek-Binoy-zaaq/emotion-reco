@@ -1,12 +1,16 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Users</title>
+    <link rel="stylesheet" href="/static/quickstart/css/themes.css">
     <link rel="stylesheet" href="/static/quickstart/css/admin-common.css">
+    <link rel="stylesheet" href="/static/quickstart/css/admin-users.css">
 </head>
+
 <body>
     <div class="navbar">
         <h1>👥 Manage Users</h1>
@@ -15,62 +19,136 @@
             <a href="{% url 'logout' %}">Logout</a>
         </div>
     </div>
-    
+
     <div class="container">
-        <div class="header-actions">
-            <h2>User List</h2>
-            <button class="btn btn-primary" onclick="showCreateModal()">➕ Create User</button>
+        <div class="page-header">
+            <div class="header-content">
+                <div class="header-title">
+                    <h2>User Management</h2>
+                    <p class="header-subtitle">Manage user accounts, permissions, and access control</p>
+                </div>
+                <button class="btn btn-primary btn-create" onclick="showCreateModal()">
+                    <span class="btn-icon">➕</span>
+                    <span>Create User</span>
+                </button>
+            </div>
         </div>
-        
+
+        <div class="stats-overview">
+            <div class="stat-box">
+                <div class="stat-icon">👥</div>
+                <div class="stat-info">
+                    <div class="stat-value" id="totalUsers">0</div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon">✓</div>
+                <div class="stat-info">
+                    <div class="stat-value" id="activeUsers">0</div>
+                    <div class="stat-label">Active Users</div>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon">✗</div>
+                <div class="stat-info">
+                    <div class="stat-value" id="inactiveUsers">0</div>
+                    <div class="stat-label">Inactive Users</div>
+                </div>
+            </div>
+        </div>
+
         <div class="table-container">
-            <table id="usersTable">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Username</th>
-                        <th>Email</th>
-                        <th>Name</th>
-                        <th>Status</th>
-                        <th>Sessions</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="usersBody"></tbody>
-            </table>
+            <div class="table-header">
+                <h3>User Directory</h3>
+                <div class="table-actions">
+                    <input type="text" id="searchInput" placeholder="🔍 Search users..." class="search-input">
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Full Name</th>
+                            <th>Status</th>
+                            <th>Sessions</th>
+                            <th class="actions-column">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersBody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
-    
+
     <!-- Create/Edit User Modal -->
     <div id="userModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeUserModal()">&times;</span>
-            <h2 id="modalTitle">Create New User</h2>
+        <div class="modal-content modal-professional">
+            <div class="modal-header">
+                <h2 id="modalTitle">Create New User</h2>
+                <span class="close" onclick="closeUserModal()">&times;</span>
+            </div>
             <form id="userForm">
-                <div class="form-group">
-                    <label>Username *</label>
-                    <input type="text" id="username" required>
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="username">
+                                <span class="label-icon">👤</span>
+                                Username <span class="required">*</span>
+                            </label>
+                            <input type="text" id="username" placeholder="Enter username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">
+                                <span class="label-icon">📧</span>
+                                Email Address
+                            </label>
+                            <input type="email" id="email" placeholder="user@example.com">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="firstName">
+                                <span class="label-icon">✏️</span>
+                                First Name
+                            </label>
+                            <input type="text" id="firstName" placeholder="Enter first name">
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName">
+                                <span class="label-icon">✏️</span>
+                                Last Name
+                            </label>
+                            <input type="text" id="lastName" placeholder="Enter last name">
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="passwordGroup">
+                        <label for="password">
+                            <span class="label-icon">🔒</span>
+                            Password <span class="required">*</span>
+                        </label>
+                        <input type="password" id="password" placeholder="Enter secure password">
+                        <small class="form-hint">Minimum 8 characters recommended</small>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="email">
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="btn-icon">💾</span>
+                        <span>Save User</span>
+                    </button>
                 </div>
-                <div class="form-group">
-                    <label>First Name</label>
-                    <input type="text" id="firstName">
-                </div>
-                <div class="form-group">
-                    <label>Last Name</label>
-                    <input type="text" id="lastName">
-                </div>
-                <div class="form-group" id="passwordGroup">
-                    <label>Password *</label>
-                    <input type="password" id="password">
-                </div>
-                <button type="submit" class="btn btn-primary">Save</button>
             </form>
         </div>
     </div>
-    
+
     <script src="/static/quickstart/js/admin-users.js"></script>
 </body>
+
 </html>
