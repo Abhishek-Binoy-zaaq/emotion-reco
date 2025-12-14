@@ -169,25 +169,25 @@
 
         <h2>⚡ Quick Actions</h2>
         <div class="quick-actions">
-            <div class="action-card" onclick="location.href='{% url 'admin_videos' %}'">
+            <div class="action-card" data-url="{% url 'admin_videos' %}" role="button" tabindex="0">
                 <div class="action-icon">🎬</div>
                 <div class="action-title">Manage Videos</div>
                 <div class="action-desc">Upload, edit, and manage video content</div>
             </div>
 
-            <div class="action-card" onclick="location.href='{% url 'admin_users' %}'">
+            <div class="action-card" data-url="{% url 'admin_users' %}" role="button" tabindex="0">
                 <div class="action-icon">👥</div>
                 <div class="action-title">Manage Users</div>
                 <div class="action-desc">View and manage user accounts</div>
             </div>
 
-            <div class="action-card" onclick="location.href='{% url 'admin_reports' %}'">
+            <div class="action-card" data-url="{% url 'admin_reports' %}" role="button" tabindex="0">
                 <div class="action-icon">📈</div>
                 <div class="action-title">View Reports</div>
                 <div class="action-desc">Aggregate analytics and insights</div>
             </div>
 
-            <div class="action-card" onclick="location.href='/django-admin/'">
+            <div class="action-card" data-url="{% url 'admin:index' %}" role="button" tabindex="0">
                 <div class="action-icon">⚙️</div>
                 <div class="action-title">Django Admin</div>
                 <div class="action-desc">Access full admin panel</div>
@@ -196,17 +196,42 @@
     </div>
 
     <script>
+        // Handle navigation for action cards
+        document.querySelectorAll('.action-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const url = card.dataset.url;
+                if (url) window.location.href = url;
+            });
+
+            // Allow keyboard navigation
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const url = card.dataset.url;
+                    if (url) window.location.href = url;
+                }
+            });
+        });
+
         async function loadStats() {
             try {
-                const response = await fetch('/api/sessions/aggregate_report/');
+                const response = await fetch("{% url 'session-aggregate-report' %}");
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const data = await response.json();
 
-                document.getElementById('totalVideos').textContent = data.total_videos;
-                document.getElementById('totalUsers').textContent = data.total_users;
-                document.getElementById('totalSessions').textContent = data.total_sessions;
-                document.getElementById('totalCaptures').textContent = data.total_captures;
+                document.getElementById('totalVideos').textContent = data.total_videos !== undefined ? data.total_videos : '0';
+                document.getElementById('totalUsers').textContent = data.total_users !== undefined ? data.total_users : '0';
+                document.getElementById('totalSessions').textContent = data.total_sessions !== undefined ? data.total_sessions : '0';
+                document.getElementById('totalCaptures').textContent = data.total_captures !== undefined ? data.total_captures : '0';
             } catch (error) {
                 console.error('Error loading stats:', error);
+                const ids = ['totalVideos', 'totalUsers', 'totalSessions', 'totalCaptures'];
+                ids.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = 'Err';
+                });
             }
         }
 

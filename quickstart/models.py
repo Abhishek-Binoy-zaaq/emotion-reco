@@ -85,7 +85,7 @@ class VideoSession(models.Model):
     
     def get_emotion_summary(self):
         """Calculate emotion statistics for this session"""
-        captures = self.captures.all()
+        captures = self.captures.all().select_related('preprocessed_version')
         if not captures:
             return {}
         
@@ -93,9 +93,11 @@ class VideoSession(models.Model):
         total_captures = 0
         
         for capture in captures:
-            if capture.expression and capture.expression not in ['error', 'no_face_detected']:
-                emotion_counts[capture.expression] = emotion_counts.get(capture.expression, 0) + 1
-                total_captures += 1
+            if hasattr(capture, 'preprocessed_version') and capture.preprocessed_version:
+                expression = capture.preprocessed_version.expression
+                if expression and expression not in ['error', 'no_face_detected']:
+                    emotion_counts[expression] = emotion_counts.get(expression, 0) + 1
+                    total_captures += 1
         
         # Calculate percentages
         emotion_percentages = {
@@ -121,13 +123,8 @@ class CapturedFrame(models.Model):
     timestamp = models.FloatField(help_text="Video timestamp in seconds")
     captured_at = models.DateTimeField(auto_now_add=True)
     
-    # Expression analysis results
-    expression = models.CharField(max_length=50, blank=True, null=True)
-    expression_confidence = models.FloatField(blank=True, null=True)
-    all_expressions = models.JSONField(blank=True, null=True)
-    
     def __str__(self):
-        return f"Frame at {self.timestamp}s - {self.expression or 'pending'}"
+        return f"Frame at {self.timestamp}s"
     
     class Meta:
         ordering = ['timestamp']
@@ -139,21 +136,14 @@ class PreprocessedImage(models.Model):
     image = models.ImageField(upload_to='preprocessed/')
     created_at = models.DateTimeField(auto_now_add=True)
     
-    def __str__(self):
-        return f"Preprocessed frame {self.capture.id}"
-
-
-
-class UploadedImage(models.Model):
-    """Legacy model for single image uploads"""
-    image = models.ImageField(upload_to='uploads/')
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+    # Expression analysis results (moved from CapturedFrame)
     expression = models.CharField(max_length=50, blank=True, null=True)
     expression_confidence = models.FloatField(blank=True, null=True)
     all_expressions = models.JSONField(blank=True, null=True)
     
     def __str__(self):
-        return f"Image {self.id} - {self.image.name}"
-    
-    class Meta:
-        ordering = ['-uploaded_at']
+        return f"Preprocessed frame {self.capture.id} - {self.expression or 'pending'}"
+
+
+
+
