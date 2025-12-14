@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import UploadedImage, VideoSession, CapturedFrame, Video, VideoCategory, PreprocessedImage
+from .models import VideoSession, CapturedFrame, Video, VideoCategory, PreprocessedImage
 
 
 @admin.register(VideoCategory)
@@ -22,25 +22,14 @@ class VideoAdmin(admin.ModelAdmin):
     readonly_fields = ['uploaded_at']
 
 
-@admin.register(UploadedImage)
-class UploadedImageAdmin(admin.ModelAdmin):
-    list_display = ['id', 'image_preview', 'expression', 'expression_confidence', 'uploaded_at']
-    list_filter = ['uploaded_at', 'expression']
-    search_fields = ['id', 'expression']
-    readonly_fields = ['uploaded_at', 'image_preview', 'expression', 'expression_confidence', 'all_expressions']
-    
-    def image_preview(self, obj):
-        if obj.image:
-            return format_html('<img src="{}" style="max-height: 100px; max-width: 200px;" />', obj.image.url)
-        return "No image"
-    image_preview.short_description = 'Preview'
+
 
 
 class CapturedFrameInline(admin.TabularInline):
     model = CapturedFrame
     extra = 0
-    readonly_fields = ['image_preview', 'timestamp', 'expression', 'expression_confidence', 'captured_at']
-    fields = ['image_preview', 'timestamp', 'expression', 'expression_confidence']
+    readonly_fields = ['image_preview', 'timestamp', 'captured_at']
+    fields = ['image_preview', 'timestamp']
     can_delete = False
     
     def image_preview(self, obj):
@@ -92,10 +81,10 @@ class VideoSessionAdmin(admin.ModelAdmin):
 
 @admin.register(CapturedFrame)
 class CapturedFrameAdmin(admin.ModelAdmin):
-    list_display = ['id', 'session', 'image_preview', 'timestamp', 'expression', 'expression_confidence', 'captured_at']
-    list_filter = ['expression', 'captured_at', 'session']
-    search_fields = ['session__video__title', 'expression']
-    readonly_fields = ['captured_at', 'image_preview', 'expression', 'expression_confidence', 'all_expressions']
+    list_display = ['id', 'session', 'image_preview', 'timestamp', 'captured_at']
+    list_filter = ['captured_at', 'session']
+    search_fields = ['session__video__title']
+    readonly_fields = ['captured_at', 'image_preview']
     
     def image_preview(self, obj):
         if obj.image:
@@ -106,8 +95,10 @@ class CapturedFrameAdmin(admin.ModelAdmin):
 
 @admin.register(PreprocessedImage)
 class PreprocessedImageAdmin(admin.ModelAdmin):
-    list_display = ['id', 'get_capture_id', 'image_preview', 'created_at']
-    readonly_fields = ['created_at', 'image_preview', 'capture']
+    list_display = ['id', 'get_capture_id', 'image_preview', 'expression', 'expression_confidence', 'created_at']
+    list_filter = ['expression', 'created_at']
+    search_fields = ['expression']
+    readonly_fields = ['created_at', 'image_preview', 'capture', 'expression', 'expression_confidence', 'all_expressions']
     
     def get_capture_id(self, obj):
         return f"Capture {obj.capture.id}"

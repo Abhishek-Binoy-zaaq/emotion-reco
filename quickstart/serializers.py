@@ -1,6 +1,6 @@
 from django.contrib.auth.models import Group, User
 from rest_framework import serializers
-from .models import UploadedImage, VideoSession, CapturedFrame, Video, VideoCategory
+from .models import VideoSession, CapturedFrame, Video, VideoCategory, PreprocessedImage
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -47,18 +47,21 @@ class VideoSerializer(serializers.ModelSerializer):
         return obj.get_average_engagement()
 
 
-class UploadedImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UploadedImage
-        fields = ["id", "image", "uploaded_at", "expression", "expression_confidence", "all_expressions"]
-        read_only_fields = ["id", "uploaded_at", "expression", "expression_confidence", "all_expressions"]
+
 
 
 class CapturedFrameSerializer(serializers.ModelSerializer):
     class Meta:
         model = CapturedFrame
-        fields = ["id", "session", "image", "timestamp", "captured_at", "expression", "expression_confidence", "all_expressions"]
-        read_only_fields = ["id", "captured_at", "expression", "expression_confidence", "all_expressions"]
+        fields = ["id", "session", "image", "timestamp", "captured_at"]
+        read_only_fields = ["id", "captured_at"]
+
+
+class PreprocessedImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PreprocessedImage
+        fields = ["id", "capture", "image", "created_at", "expression", "expression_confidence", "all_expressions"]
+        read_only_fields = ["id", "created_at"]
 
 
 class VideoSessionSerializer(serializers.ModelSerializer):

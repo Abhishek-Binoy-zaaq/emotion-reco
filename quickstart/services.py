@@ -140,34 +140,44 @@ class SessionAnalyticsService:
         Returns:
             dict: Comprehensive session analytics
         """
-        captures = session.captures.all()
+        captures = session.captures.all().select_related('preprocessed_version')
         
         # Basic stats
         total_captures = captures.count()
-        successful_detections = captures.exclude(
-            expression__in=['error', 'no_face_detected', None]
-        ).count()
+        successful_detections = 0
         
         # Emotion timeline
         emotion_timeline = []
-        for capture in captures:
-            emotion_timeline.append({
-                'timestamp': capture.timestamp,
-                'expression': capture.expression,
-                'confidence': capture.expression_confidence
-            })
-        
-        # Emotion distribution
         emotion_counts = {}
         emotion_confidences = {}
         
         for capture in captures:
-            if capture.expression and capture.expression not in ['error', 'no_face_detected']:
-                emotion_counts[capture.expression] = emotion_counts.get(capture.expression, 0) + 1
+            # Check if preprocessed version exists (this holds the emotion data now)
+            if hasattr(capture, 'preprocessed_version') and capture.preprocessed_version:
+                preprocessed = capture.preprocessed_version
+                expression = preprocessed.expression
+                confidence = preprocessed.expression_confidence
                 
-                if capture.expression not in emotion_confidences:
-                    emotion_confidences[capture.expression] = []
-                emotion_confidences[capture.expression].append(capture.expression_confidence)
+                if expression and expression not in ['error', 'no_face_detected']:
+                    successful_detections += 1
+                    
+                    emotion_timeline.append({
+                        'timestamp': capture.timestamp,
+                        'expression': expression,
+                        'confidence': confidence
+                    })
+                    
+                    emotion_counts[expression] = emotion_counts.get(expression, 0) + 1
+                    
+                    if expression not in emotion_confidences:
+                        emotion_confidences[expression] = []
+                    emotion_confidences[expression].append(confidence)
+            else:
+                 emotion_timeline.append({
+                    'timestamp': capture.timestamp,
+                    'expression': 'no_face_detected',
+                    'confidence': 0
+                })
         
         # Calculate percentages and average confidence
         emotion_stats = {}

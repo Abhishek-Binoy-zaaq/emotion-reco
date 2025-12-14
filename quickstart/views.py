@@ -12,9 +12,9 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
-from .models import UploadedImage, VideoSession, CapturedFrame, Video, VideoCategory, UserProfile
+from .models import VideoSession, CapturedFrame, Video, VideoCategory, UserProfile
 from .serializers import (
-    GroupSerializer, UserSerializer, UploadedImageSerializer,
+    GroupSerializer, UserSerializer,
     VideoSessionSerializer, VideoSessionCreateSerializer, 
     CapturedFrameSerializer, VideoSerializer, VideoCategorySerializer
 )
@@ -368,10 +368,6 @@ class CapturedFrameViewSet(viewsets.ModelViewSet):
         )
         
         if analysis_result['success']:
-            instance.expression = analysis_result['expression']
-            instance.expression_confidence = analysis_result['confidence']
-            instance.all_expressions = analysis_result['all_emotions']
-            
             # Save preprocessed image to separate model if it was generated
             preprocessed_path = analysis_result.get('preprocessed_path')
             if preprocessed_path:
@@ -386,18 +382,17 @@ class CapturedFrameViewSet(viewsets.ModelViewSet):
                     
                     PreprocessedImage.objects.create(
                         capture=instance,
-                        image=rel_path
+                        image=rel_path,
+                        expression=analysis_result['expression'],
+                        expression_confidence=analysis_result['confidence'],
+                        all_expressions=analysis_result['all_emotions']
                     )
-                    print(f"[OK] Saved preprocessed image to model: {rel_path}", flush=True)
+                    print(f"[OK] Saved preprocessed image to model with emotion data: {rel_path}", flush=True)
                 except Exception as e:
                     print(f"[FAIL] Failed to save preprocessed image model: {e}", flush=True)
-                    
-        else:
-            instance.expression = 'error'
-            instance.all_expressions = {'error': analysis_result['error']}
         
-        instance.save()
-        
+        # We return the captured frame data. The frontend might need to fetch the preprocessed image separately or we can include it.
+        # For now, following the pattern of returning the captured frame serializer.
         return Response(self.get_serializer(instance).data, status=status.HTTP_201_CREATED)
 
 
@@ -433,32 +428,7 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=201)
 
 
-class ImageUploadViewSet(viewsets.ModelViewSet):
-    """API endpoint for single image uploads (legacy)"""
-    queryset = UploadedImage.objects.all()
-    serializer_class = UploadedImageSerializer
-    parser_classes = [MultiPartParser, FormParser]
-    permission_classes = [IsAuthenticated]
-    
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        instance = serializer.save()
-        
-        # Analyze the image
-        analysis_result = EmotionDetectionService.analyze_image(instance.image.path)
-        
-        if analysis_result['success']:
-            instance.expression = analysis_result['expression']
-            instance.expression_confidence = analysis_result['confidence']
-            instance.all_expressions = analysis_result['all_emotions']
-        else:
-            instance.expression = 'error'
-            instance.all_expressions = {'error': analysis_result['error']}
-        
-        instance.save()
-        
-        return Response(self.get_serializer(instance).data, status=status.HTTP_201_CREATED)
+
 
 
 class GroupViewSet(viewsets.ModelViewSet):
