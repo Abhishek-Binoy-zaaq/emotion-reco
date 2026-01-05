@@ -1,0 +1,108 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+    <link rel="stylesheet" href="/static/emotions/css/themes.css">
+    <link rel="stylesheet" href="/static/emotions/css/admin-common.css">
+</head>
+
+<body>
+    <div class="navbar">
+        <h1>🎬 Video Library</h1>
+        <div class="navbar-right">
+            <a href="{% url 'user_sessions' %}">My Sessions</a>
+            <span>Welcome, {{ user.username }}</span>
+            <a href="{% url 'logout' %}">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header-actions">
+            <h2>Select a Video to Watch</h2>
+            <div>
+                <label style="margin-right: 10px;">Filter by Category:</label>
+                <select id="categoryFilter" style="padding: 10px; border-radius: 6px; border: 2px solid #667eea;">
+                    <option value="">All Categories</option>
+                </select>
+            </div>
+        </div>
+        <div id="videosList" class="videos-grid"></div>
+    </div>
+
+    <script>
+        async function loadCategories() {
+            try {
+                const response = await fetch('/api/categories/');
+                const data = await response.json();
+                const categories = data.results || data;
+
+                const select = document.getElementById('categoryFilter');
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = `${cat.name} (${cat.video_count})`;
+                    select.appendChild(option);
+                });
+
+                select.addEventListener('change', () => loadVideos());
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        async function loadVideos() {
+            try {
+                const categoryId = document.getElementById('categoryFilter').value;
+                const url = categoryId ? `/api/videos/?category=${categoryId}` : '/api/videos/';
+                const response = await fetch(url);
+                const data = await response.json();
+
+                // Handle both paginated and non-paginated responses
+                const videos = data.results || data;
+
+                const container = document.getElementById('videosList');
+
+                if (!videos || videos.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No videos available yet. Please contact admin.</p>';
+                    return;
+                }
+
+                container.innerHTML = videos.map(video => `
+                    <div class="video-card" onclick="startSession(${video.id})">
+                        <video class="video-thumbnail" src="${video.video_file}"></video>
+                        <div class="video-info">
+                            <div class="video-title">${video.title}</div>
+                            ${video.category_name ? `<p style="color: #667eea; font-size: 0.85em; margin: 5px 0;">📁 ${video.category_name}</p>` : ''}
+                            <p style="color: #666; margin: 10px 0;">${video.description || 'No description'}</p>
+                            <div class="video-stats">
+                                ⏱️ ${formatDuration(video.duration)}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading videos:', error);
+                document.getElementById('videosList').innerHTML = '<p style="text-align: center; color: #dc3545; padding: 40px;">Error loading videos. Please refresh the page.</p>';
+            }
+        }
+
+        function startSession(videoId) {
+            window.location.href = `/session/${videoId}/`;
+        }
+
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        loadCategories();
+        loadVideos();
+    </script>
+</body>
+
+</html>

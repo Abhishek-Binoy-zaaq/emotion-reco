@@ -1,0 +1,364 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .upload-box {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .drop-zone {
+            border: 3px dashed #667eea;
+            border-radius: 8px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+
+        .drop-zone:hover {
+            border-color: #5568d3;
+            background: #e9ecef;
+        }
+
+        .drop-zone.dragover {
+            border-color: #5568d3;
+            background: #e9ecef;
+            transform: scale(1.02);
+        }
+
+        .drop-zone-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .drop-zone-text {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .drop-zone-hint {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .preview-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .preview-image {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .upload-btn {
+            width: 100%;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .upload-btn:hover {
+            background: #5568d3;
+        }
+
+        .upload-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .result h3 {
+            margin-bottom: 10px;
+        }
+
+        .image-id {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .admin-link {
+            margin-top: 10px;
+            display: inline-block;
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .admin-link:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📸 Image Upload</h1>
+
+        <div class="upload-box">
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-icon">📁</div>
+                <div class="drop-zone-text">Click to select or drag & drop an image</div>
+                <div class="drop-zone-hint">Supports: JPG, PNG, GIF</div>
+            </div>
+            <input type="file" id="fileInput" accept="image/*">
+
+            <div class="preview-container" id="previewContainer">
+                <img id="previewImage" class="preview-image" alt="Preview">
+                <button class="upload-btn" id="uploadBtn">Upload Image</button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Uploading...</p>
+            </div>
+
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewImage = document.getElementById('previewImage');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+
+        let selectedFile = null;
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showResult('error', 'Please select an image file');
+                return;
+            }
+
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                previewContainer.style.display = 'block';
+                result.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        uploadBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+
+            loading.style.display = 'block';
+            uploadBtn.disabled = true;
+            result.style.display = 'none';
+
+            try {
+                const csrftoken = getCookie('csrftoken');
+                const response = await fetch('/api/images/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(`Upload failed: ${response.status} - ${errorData}`);
+                }
+
+                const data = await response.json();
+
+                let expressionHTML = '';
+                if (data.expression && data.expression !== 'error' && data.expression !== 'no_face_detected') {
+                    expressionHTML = `
+                        <p><strong>😊 Detected Expression:</strong> <span style="color: #667eea; font-size: 20px; text-transform: capitalize;">${data.expression}</span></p>
+                        <p><strong>Confidence:</strong> ${(data.expression_confidence || 0).toFixed(2)}%</p>
+                    `;
+
+                    if (data.all_expressions && !data.all_expressions.error) {
+                        const emotions = Object.entries(data.all_expressions)
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 3)
+                            .map(([emotion, score]) => `${emotion}: ${score.toFixed(1)}%`)
+                            .join(', ');
+                        expressionHTML += `<p><strong>Top emotions:</strong> ${emotions}</p>`;
+                    }
+                } else if (data.expression === 'no_face_detected') {
+                    expressionHTML = '<p style="color: #856404;">⚠️ Could not detect face in image. Try uploading an image with a clear, front-facing face.</p>';
+                } else if (data.expression === 'error') {
+                    const errorMsg = data.all_expressions?.message || 'Face detection failed';
+                    expressionHTML = `<p style="color: #856404;">⚠️ ${errorMsg}</p>`;
+                }
+
+                showResult('success', `
+                    <h3>✅ Upload Successful!</h3>
+                    <p>Image ID: <span class="image-id">${data.id}</span></p>
+                    ${expressionHTML}
+                    <p><strong>Uploaded at:</strong> ${new Date(data.uploaded_at).toLocaleString()}</p>
+                    <a href="/admin/emotions/uploadedimage/" class="admin-link" target="_blank">
+                        View in Admin Panel →
+                    </a>
+                `);
+
+                // Reset form
+                setTimeout(() => {
+                    previewContainer.style.display = 'none';
+                    selectedFile = null;
+                    fileInput.value = '';
+                }, 2000);
+
+            } catch (error) {
+                showResult('error', `<h3>❌ Upload Failed</h3><p>${error.message}</p>`);
+            } finally {
+                loading.style.display = 'none';
+                uploadBtn.disabled = false;
+            }
+        });
+
+        function showResult(type, message) {
+            result.className = `result ${type}`;
+            result.innerHTML = message;
+            result.style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>

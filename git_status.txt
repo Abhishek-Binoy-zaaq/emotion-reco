@@ -1,0 +1,113 @@
+On branch sub_branch
+Your branch is up to date with 'origin/sub_branch'.
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   .gitignore
+	modified:   README.md
+	deleted:    check_users.py
+	deleted:    check_videos.py
+	deleted:    clean_videos.py
+	deleted:    cleanup_media.py
+	deleted:    fix_videos.py
+	modified:   manage.py
+	deleted:    quickstart/__init__.py
+	deleted:    quickstart/admin.py
+	deleted:    quickstart/apps.py
+	deleted:    quickstart/image_preprocessing.py
+	deleted:    quickstart/migrations/0001_initial.py
+	deleted:    quickstart/migrations/0002_uploadedimage_all_expressions_and_more.py
+	deleted:    quickstart/migrations/0003_videosession_capturedframe.py
+	deleted:    quickstart/migrations/0004_remove_videosession_video_duration_and_more.py
+	deleted:    quickstart/migrations/0005_videosession_report_data.py
+	deleted:    quickstart/migrations/0006_videocategory_video_category.py
+	deleted:    quickstart/migrations/0007_preprocessedimage_userprofile.py
+	deleted:    quickstart/migrations/0008_remove_capturedframe_all_expressions_and_more.py
+	deleted:    quickstart/migrations/0009_delete_uploadedimage.py
+	deleted:    quickstart/migrations/__init__.py
+	deleted:    quickstart/models.py
+	deleted:    quickstart/serializers.py
+	deleted:    quickstart/services.py
+	deleted:    quickstart/static/quickstart/css/admin-common.css
+	deleted:    quickstart/static/quickstart/css/admin-users.css
+	deleted:    quickstart/static/quickstart/css/themes.css
+	deleted:    quickstart/static/quickstart/js/admin-users.js
+	deleted:    quickstart/static/quickstart/js/admin-videos.js
+	deleted:    quickstart/static/quickstart/js/video-session.js
+	deleted:    quickstart/templates/quickstart/admin_dashboard.html
+	deleted:    quickstart/templates/quickstart/admin_reports.html
+	deleted:    quickstart/templates/quickstart/admin_users.html
+	deleted:    quickstart/templates/quickstart/admin_video_report.html
+	deleted:    quickstart/templates/quickstart/admin_videos.html
+	deleted:    quickstart/templates/quickstart/index.html
+	deleted:    quickstart/templates/quickstart/login.html
+	deleted:    quickstart/templates/quickstart/report.html
+	deleted:    quickstart/templates/quickstart/signup.html
+	deleted:    quickstart/templates/quickstart/user_dashboard.html
+	deleted:    quickstart/templates/quickstart/user_report.html
+	deleted:    quickstart/templates/quickstart/user_session.html
+	deleted:    quickstart/templates/quickstart/user_sessions.html
+	deleted:    quickstart/templates/quickstart/video_session.html
+	deleted:    quickstart/tests.py
+	deleted:    quickstart/views.py
+	deleted:    test_deepface.py
+	deleted:    test_login.py
+	deleted:    tutorials/__init__.py
+	deleted:    tutorials/asgi.py
+	deleted:    tutorials/requirements.txt
+	deleted:    tutorials/settings.py
+	deleted:    tutorials/urls.py
+	deleted:    tutorials/wsgi.py
+	deleted:    verify_workflow_quickstart.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	config/__init__.py
+	config/asgi.py
+	config/requirements.txt
+	config/settings.py
+	config/urls.py
+	config/wsgi.py
+	emotions/__init__.py
+	emotions/admin.py
+	emotions/apps.py
+	emotions/image_preprocessing.py
+	emotions/migrations/0001_initial.py
+	emotions/migrations/0002_uploadedimage_all_expressions_and_more.py
+	emotions/migrations/0003_videosession_capturedframe.py
+	emotions/migrations/0004_remove_videosession_video_duration_and_more.py
+	emotions/migrations/0005_videosession_report_data.py
+	emotions/migrations/0006_videocategory_video_category.py
+	emotions/migrations/0007_preprocessedimage_userprofile.py
+	emotions/migrations/0008_remove_capturedframe_all_expressions_and_more.py
+	emotions/migrations/0009_delete_uploadedimage.py
+	emotions/migrations/__init__.py
+	emotions/models.py
+	emotions/serializers.py
+	emotions/services.py
+	emotions/static/emotions/css/admin-common.css
+	emotions/static/emotions/css/admin-users.css
+	emotions/static/emotions/css/themes.css
+	emotions/static/emotions/js/admin-users.js
+	emotions/static/emotions/js/admin-videos.js
+	emotions/static/emotions/js/video-session.js
+	emotions/templates/emotions/admin_dashboard.html
+	emotions/templates/emotions/admin_reports.html
+	emotions/templates/emotions/admin_users.html
+	emotions/templates/emotions/admin_video_report.html
+	emotions/templates/emotions/admin_videos.html
+	emotions/templates/emotions/index.html
+	emotions/templates/emotions/login.html
+	emotions/templates/emotions/report.html
+	emotions/templates/emotions/signup.html
+	emotions/templates/emotions/user_dashboard.html
+	emotions/templates/emotions/user_report.html
+	emotions/templates/emotions/user_session.html
+	emotions/templates/emotions/user_sessions.html
+	emotions/templates/emotions/video_session.html
+	emotions/tests.py
+	emotions/views.py
+	git_status.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")

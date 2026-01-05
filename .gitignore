@@ -1,7 +1,26 @@
-/media
-/venv
-/tutorials/__pycache__/
-/quickstart/__pycache__/
-quickstart/migrations/__pycache__/
-/requirements.cpython-313.pyc
+# General
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django
 *.sqlite3
+/media
+/staticfiles
+local_settings.py
+
+# Virtual Env
+/venv
+/env
+/pip
+/pipenv
+
+# IDEs
+.vscode/
+.idea/
+
+# Logs and Temporary Files
+*.log
+check_debug.txt
+inspect_db.py
+fix_db_rename.py
