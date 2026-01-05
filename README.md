@@ -31,18 +31,18 @@ An interactive web application with role-based access (Admin & User) that plays 
 ## Project Structure
 
 ```
-quickstart/
+emotions/
 ├── models.py           # Database models (VideoSession, CapturedFrame)
 ├── views.py            # API endpoints and page views
 ├── serializers.py      # REST API serializers
 ├── services.py         # Business logic (EmotionDetectionService, SessionAnalyticsService)
 ├── admin.py            # Django admin configuration
 ├── templates/
-│   └── quickstart/
+│   └── emotions/
 │       ├── video_session.html  # Main session page
 │       └── report.html         # Analytics report page
 └── static/
-    └── quickstart/
+    └── emotions/
         └── js/
             └── video-session.js  # Frontend session manager
 ```
