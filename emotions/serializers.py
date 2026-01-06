@@ -1,6 +1,6 @@
 from django.contrib.auth.models import Group, User
 from rest_framework import serializers
-from .models import VideoSession, CapturedFrame, Video, VideoCategory, PreprocessedImage
+from .models import SessionReport, CapturedFrame, Video, VideoCategory, PreprocessedImage
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -64,24 +64,26 @@ class PreprocessedImageSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at"]
 
 
-class VideoSessionSerializer(serializers.ModelSerializer):
+class SessionReportSerializer(serializers.ModelSerializer):
     captures = CapturedFrameSerializer(many=True, read_only=True)
     emotion_summary = serializers.SerializerMethodField()
     video_title = serializers.CharField(source='video.title', read_only=True)
     user_name = serializers.CharField(source='user.username', read_only=True)
+    session_id = serializers.IntegerField(source='id', read_only=True)
+    video_id = serializers.IntegerField(source='video.id', read_only=True)
     
     class Meta:
-        model = VideoSession
-        fields = ["id", "video", "video_title", "user", "user_name", "started_at", 
-                  "completed_at", "is_completed", "captures", "emotion_summary"]
-        read_only_fields = ["id", "started_at", "user"]
+        model = SessionReport
+        fields = ["session_id", "video_id", "video_title", "user", "user_name", "started_at", 
+                  "completed_at", "is_completed", "captures", "emotion_summary", "session_report"]
+        read_only_fields = ["session_id", "started_at", "user", "video_id", "session_report"]
     
     def get_emotion_summary(self, obj):
         return obj.get_emotion_summary()
 
 
-class VideoSessionCreateSerializer(serializers.ModelSerializer):
+class SessionReportCreateSerializer(serializers.ModelSerializer):
     class Meta:
-        model = VideoSession
+        model = SessionReport
         fields = ["id", "video"]
         read_only_fields = ["id"]

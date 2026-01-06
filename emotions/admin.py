@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import VideoSession, CapturedFrame, Video, VideoCategory, PreprocessedImage
+from .models import SessionReport, CapturedFrame, Video, VideoCategory, PreprocessedImage
 
 
 @admin.register(VideoCategory)
@@ -39,9 +39,9 @@ class CapturedFrameInline(admin.TabularInline):
     image_preview.short_description = 'Preview'
 
 
-@admin.register(VideoSession)
-class VideoSessionAdmin(admin.ModelAdmin):
-    list_display = ['id', 'get_video_title', 'get_user_name', 'capture_count', 'is_completed', 'started_at']
+@admin.register(SessionReport)
+class SessionReportAdmin(admin.ModelAdmin):
+    list_display = ['id', 'get_video_title', 'get_user_name', 'session_report', 'capture_count', 'is_completed', 'started_at']
     list_filter = ['is_completed', 'started_at', 'video']
     search_fields = ['video__title', 'user__username']
     readonly_fields = ['started_at', 'emotion_summary_display']
