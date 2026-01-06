@@ -135,7 +135,7 @@ class SessionAnalyticsService:
         Generate a comprehensive report for a video session
         
         Args:
-            session: VideoSession instance
+            session: SessionReport instance
             
         Returns:
             dict: Comprehensive session analytics

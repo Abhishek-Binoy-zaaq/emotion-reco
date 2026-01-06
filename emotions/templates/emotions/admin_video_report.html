@@ -136,7 +136,7 @@
                 const sessionsResponse = await fetch(`/api/sessions/`);
                 const sessionsData = await sessionsResponse.json();
                 const allSessions = sessionsData.results || sessionsData;
-                const sessions = allSessions.filter(s => s.video === videoId);
+                const sessions = allSessions.filter(s => s.video_id === videoId);
 
                 // Calculate statistics
                 const totalSessions = sessions.length;
@@ -237,13 +237,13 @@
                 const summary = s.emotion_summary || {};
                 return `
                     <tr>
-                        <td>${s.id}</td>
+                        <td>${s.session_id}</td>
                         <td>${s.user_name || 'Unknown'}</td>
                         <td>${new Date(s.started_at).toLocaleString()}</td>
                         <td><span style="color: ${s.is_completed ? '#28a745' : '#ffc107'}">${s.is_completed ? '✓ Completed' : '⏸ Incomplete'}</span></td>
                         <td>${summary.total_captures || 0}</td>
                         <td>${summary.dominant_emotion || 'N/A'}</td>
-                        <td><button class="btn" onclick="window.open('/report/${s.id}/', '_blank')">📊 View</button></td>
+                        <td><button class="btn" onclick="window.open('/report/${s.session_id}/', '_blank')">📊 View</button></td>
                     </tr>
                 `;
             }).join('');

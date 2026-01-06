@@ -8,6 +8,67 @@
     <title>User Dashboard</title>
     <link rel="stylesheet" href="/static/emotions/css/themes.css">
     <link rel="stylesheet" href="/static/emotions/css/admin-common.css">
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .category-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 25px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .category-card:hover {
+            transform: translateY(-5px);
+            border-color: #667eea;
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .category-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .category-count {
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
 </head>
 
 <body>
@@ -30,7 +91,24 @@
                 </select>
             </div>
         </div>
-        <div id="videosList" class="videos-grid"></div>
+        <div id="videosList" class="videos-grid">
+            <div style="text-align: center; padding: 50px; color: #666; font-style: italic;">
+                Please select a category to view videos.
+            </div>
+        </div>
+    </div>
+
+    <!-- Blocking Category Modal -->
+    <div id="categoryModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="font-size: 2em; margin-bottom: 10px; color: #667eea;">👋 Welcome!</h2>
+            <p style="color: #666; font-size: 1.1em; margin-bottom: 30px;">Please select a category to start watching
+                videos.</p>
+
+            <div id="modalCategories" class="category-grid">
+                <!-- Categories will be injected here -->
+            </div>
+        </div>
     </div>
 
     <script>
@@ -41,22 +119,59 @@
                 const categories = data.results || data;
 
                 const select = document.getElementById('categoryFilter');
+                const modalGrid = document.getElementById('modalCategories');
+
+                // Clear existing items to prevent duplication
+                select.innerHTML = '<option value="">All Categories</option>';
+                modalGrid.innerHTML = '';
+
+                // Add "All Categories" to modal first
+                const allCard = createCategoryCard({ id: '', name: 'All Categories', video_count: 'Show All' });
+                modalGrid.appendChild(allCard);
+
                 categories.forEach(cat => {
+                    // Populate Dropdown
                     const option = document.createElement('option');
                     option.value = cat.id;
                     option.textContent = `${cat.name} (${cat.video_count})`;
                     select.appendChild(option);
+
+                    // Populate Modal
+                    const card = createCategoryCard(cat);
+                    modalGrid.appendChild(card);
                 });
 
-                select.addEventListener('change', () => loadVideos());
+                select.addEventListener('change', () => loadVideos(select.value));
             } catch (error) {
                 console.error('Error loading categories:', error);
             }
         }
 
-        async function loadVideos() {
+        function createCategoryCard(cat) {
+            const div = document.createElement('div');
+            div.className = 'category-card';
+            div.onclick = () => selectCategory(cat.id);
+            div.innerHTML = `
+                <div class="category-name">${cat.name}</div>
+                <div class="category-count">
+                    ${cat.id === '' ? '📁 ' + cat.video_count : '🎬 ' + cat.video_count + ' Videos'}
+                </div>
+            `;
+            return div;
+        }
+
+        function selectCategory(categoryId) {
+            const select = document.getElementById('categoryFilter');
+            select.value = categoryId;
+            document.getElementById('categoryModal').style.display = 'none';
+            loadVideos(categoryId);
+        }
+
+        async function loadVideos(categoryId = '') {
             try {
-                const categoryId = document.getElementById('categoryFilter').value;
+                // Ensure categoryId is used if passed, otherwise get from filter (handling potential empty string for 'All')
+                if (categoryId === undefined) categoryId = document.getElementById('categoryFilter').value;
+
                 const url = categoryId ? `/api/videos/?category=${categoryId}` : '/api/videos/';
                 const response = await fetch(url);
                 const data = await response.json();
@@ -85,8 +200,13 @@
                     </div>
                 `).join('');
             } catch (error) {
+            } catch (error) {
                 console.error('Error loading videos:', error);
-                document.getElementById('videosList').innerHTML = '<p style="text-align: center; color: #dc3545; padding: 40px;">Error loading videos. Please refresh the page.</p>';
+                document.getElementById('videosList').innerHTML = `<div style="text-align: center; color: #dc3545; padding: 40px;">
+                    <h3>Error loading videos</h3>
+                    <p>${error.message}</p>
+                    <p>Please check the console for more details.</p>
+                </div>`;
             }
         }
 
@@ -95,13 +215,17 @@
         }
 
         function formatDuration(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
+            if (!seconds && seconds !== 0) return '0:00';
+            const val = parseFloat(seconds);
+            if (isNaN(val)) return '0:00';
+
+            const mins = Math.floor(val / 60);
+            const secs = Math.floor(val % 60);
             return `${mins}:${secs.toString().padStart(2, '0')}`;
         }
 
         loadCategories();
-        loadVideos();
+        // Removed initial loadVideos() call to enforce selection
     </script>
 </body>
 

@@ -69,19 +69,22 @@ class Video(models.Model):
         ordering = ['-uploaded_at']
 
 
-class VideoSession(models.Model):
-    """Represents a video viewing session"""
+class SessionReport(models.Model):
+    """Represents a video viewing session report"""
     video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='sessions', null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sessions')
     started_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     is_completed = models.BooleanField(default=False)
     
+    # New fields for naming consistency and direct access
+    session_report = models.CharField(max_length=50, null=True, blank=True, help_text="Dominant emotion for this session")
+    
     # Cached report data (stored as JSON)
     report_data = models.JSONField(null=True, blank=True, help_text="Cached session report")
     
     def __str__(self):
-        return f"Session {self.id} - {self.user.username} - {self.video.title if self.video else 'Unknown'}"
+        return f"Report {self.id} - {self.user.username} - {self.video.title if self.video else 'Unknown'}"
     
     def get_emotion_summary(self):
         """Calculate emotion statistics for this session"""
@@ -118,7 +121,7 @@ class VideoSession(models.Model):
 
 class CapturedFrame(models.Model):
     """Represents a single captured frame during video playback"""
-    session = models.ForeignKey(VideoSession, on_delete=models.CASCADE, related_name='captures')
+    session = models.ForeignKey(SessionReport, on_delete=models.CASCADE, related_name='captures')
     image = models.ImageField(upload_to='captures/')
     timestamp = models.FloatField(help_text="Video timestamp in seconds")
     captured_at = models.DateTimeField(auto_now_add=True)

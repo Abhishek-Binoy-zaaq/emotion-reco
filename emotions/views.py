@@ -12,10 +12,10 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
-from .models import VideoSession, CapturedFrame, Video, VideoCategory, UserProfile
+from .models import SessionReport, CapturedFrame, Video, VideoCategory, UserProfile
 from .serializers import (
     GroupSerializer, UserSerializer,
-    VideoSessionSerializer, VideoSessionCreateSerializer, 
+    SessionReportSerializer, SessionReportCreateSerializer, 
     CapturedFrameSerializer, VideoSerializer, VideoCategorySerializer
 )
 from .services import EmotionDetectionService, SessionAnalyticsService
@@ -226,20 +226,20 @@ class VideoViewSet(viewsets.ModelViewSet):
         return Response(stats)
 
 
-class VideoSessionViewSet(viewsets.ModelViewSet):
-    """API endpoint for video sessions"""
-    serializer_class = VideoSessionSerializer
+class SessionReportViewSet(viewsets.ModelViewSet):
+    """API endpoint for video session reports"""
+    serializer_class = SessionReportSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         if self.request.user.is_staff:
-            return VideoSession.objects.all()
-        return VideoSession.objects.filter(user=self.request.user)
+            return SessionReport.objects.all()
+        return SessionReport.objects.filter(user=self.request.user)
     
     def get_serializer_class(self):
         if self.action == 'create':
-            return VideoSessionCreateSerializer
-        return VideoSessionSerializer
+            return SessionReportCreateSerializer
+        return SessionReportSerializer
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -254,6 +254,10 @@ class VideoSessionViewSet(viewsets.ModelViewSet):
         # Generate and cache the report
         report_data = SessionAnalyticsService.generate_session_report(session)
         session.report_data = report_data
+        
+        # Save dominant emotion to the new session_report field
+        session.session_report = report_data.get('dominant_emotion')
+        
         session.save()
         
         return Response({'status': 'completed', 'report': report_data})
@@ -280,7 +284,7 @@ class VideoSessionViewSet(viewsets.ModelViewSet):
         if not request.user.is_staff:
             return Response({'error': 'Admin access required'}, status=403)
         
-        sessions = VideoSession.objects.filter(is_completed=True)
+        sessions = SessionReport.objects.filter(is_completed=True)
         
         total_sessions = sessions.count()
         total_users = User.objects.filter(is_staff=False).count()

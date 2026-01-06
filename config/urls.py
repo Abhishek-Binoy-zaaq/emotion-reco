@@ -26,7 +26,7 @@ router = routers.DefaultRouter()
 router.register(r"users", views.UserViewSet)
 router.register(r"groups", views.GroupViewSet)
 
-router.register(r"sessions", views.VideoSessionViewSet, basename='session')
+router.register(r"sessions", views.SessionReportViewSet, basename='session')
 router.register(r"captures", views.CapturedFrameViewSet)
 router.register(r"videos", views.VideoViewSet)
 router.register(r"categories", views.VideoCategoryViewSet)
