@@ -9,7 +9,7 @@ from django.contrib import messages
 from rest_framework import permissions, viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
 from .models import SessionReport, CapturedFrame, Video, VideoCategory, UserProfile
@@ -150,11 +150,31 @@ def admin_video_report(request, video_id):
     return render(request, 'emotions/admin_video_report.html', {'video_id': video_id})
 
 
+@login_required
+@user_passes_test(is_admin)
+def admin_session_report(request, session_id):
+    """Admin per-session report"""
+    return render(request, 'emotions/admin_session_report.html', {'session_id': session_id})
+
+
 # User Views
 @login_required
 def user_dashboard(request):
-    """User dashboard - video selection"""
+    """User dashboard - category selection"""
     return render(request, 'emotions/user_dashboard.html')
+
+
+@login_required
+def user_category_videos(request, category_id):
+    """User category video list"""
+    try:
+        category = VideoCategory.objects.get(id=category_id)
+    except VideoCategory.DoesNotExist:
+        return redirect('user_dashboard')
+        
+    return render(request, 'emotions/user_category_videos.html', {
+        'category': category
+    })
 
 
 @login_required
@@ -192,7 +212,7 @@ class VideoViewSet(viewsets.ModelViewSet):
     """API endpoint for videos"""
     queryset = Video.objects.filter(is_active=True)
     serializer_class = VideoSerializer
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
@@ -359,7 +379,6 @@ class CapturedFrameViewSet(viewsets.ModelViewSet):
     
     def create(self, request, *args, **kwargs):
         """Create a new captured frame and analyze it"""
-        from .models import PreprocessedImage
         
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -372,31 +391,34 @@ class CapturedFrameViewSet(viewsets.ModelViewSet):
         )
         
         if analysis_result['success']:
-            # Save preprocessed image to separate model if it was generated
+            # Save analysis results to new PreprocessedImage model
             preprocessed_path = analysis_result.get('preprocessed_path')
             if preprocessed_path:
                 try:
-                    # Create PreprocessedImage instance
-                    # We need to get the relative path for ImageField
-                    # ImagePreprocessor returns full path
                     import os
                     from django.conf import settings
+                    from .models import PreprocessedImage
                     
                     rel_path = os.path.relpath(preprocessed_path, settings.MEDIA_ROOT)
                     
+                    # Create PreprocessedImage instance
                     PreprocessedImage.objects.create(
-                        capture=instance,
+                        captured_frame=instance,
                         image=rel_path,
                         expression=analysis_result['expression'],
                         expression_confidence=analysis_result['confidence'],
-                        all_expressions=analysis_result['all_emotions']
+                        all_expressions=analysis_result['all_emotions'],
+                        # Denormalized fields
+                        session=instance.session,
+                        user=instance.session.user,
+                        video=instance.session.video
                     )
-                    print(f"[OK] Saved preprocessed image to model with emotion data: {rel_path}", flush=True)
+                    
+                    print(f"[OK] Saved analysis to PreprocessedImage: {rel_path}", flush=True)
                 except Exception as e:
-                    print(f"[FAIL] Failed to save preprocessed image model: {e}", flush=True)
+                    print(f"[FAIL] Failed to save analysis results: {e}", flush=True)
         
-        # We return the captured frame data. The frontend might need to fetch the preprocessed image separately or we can include it.
-        # For now, following the pattern of returning the captured frame serializer.
+        # Return data including the preprocessed version (now available via serializer field)
         return Response(self.get_serializer(instance).data, status=status.HTTP_201_CREATED)
 
 

@@ -5,6 +5,8 @@ async function loadCategories() {
         const categories = data.results || data;
         
         const select = document.getElementById('category');
+        select.innerHTML = '<option value="">No Category</option>'; // Clear existing options
+        
         categories.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat.id;

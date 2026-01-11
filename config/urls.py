@@ -46,9 +46,11 @@ urlpatterns = [
     path("admin/users/", views.admin_users, name="admin_users"),
     path("admin/reports/", views.admin_reports, name="admin_reports"),
     path("admin/video-report/<int:video_id>/", views.admin_video_report, name="admin_video_report"),
+    path("admin/session-report/<int:session_id>/", views.admin_session_report, name="admin_session_report"),
     
     # User URLs
     path("dashboard/", views.user_dashboard, name="user_dashboard"),
+    path("category/<int:category_id>/", views.user_category_videos, name="user_category_videos"),
     path("my-sessions/", views.user_sessions, name="user_sessions"),
     path("session/<int:video_id>/", views.user_session, name="user_session"),
     path("report/<int:session_id>/", views.user_report, name="user_report"),
