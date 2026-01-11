@@ -96,10 +96,12 @@ class SessionReport(models.Model):
         total_captures = 0
         
         for capture in captures:
-            expression = capture.expression
-            if expression and expression not in ['error', 'no_face_detected']:
-                emotion_counts[expression] = emotion_counts.get(expression, 0) + 1
-                total_captures += 1
+            # Check if capture has been preprocessed
+            if hasattr(capture, 'preprocessed_version'):
+                expression = capture.preprocessed_version.expression
+                if expression and expression not in ['error', 'no_face_detected']:
+                    emotion_counts[expression] = emotion_counts.get(expression, 0) + 1
+                    total_captures += 1
         
         # Calculate percentages
         emotion_percentages = {
