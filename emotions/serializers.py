@@ -50,18 +50,24 @@ class VideoSerializer(serializers.ModelSerializer):
 
 
 
-class CapturedFrameSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CapturedFrame
-        fields = ["id", "session", "image", "timestamp", "captured_at"]
-        read_only_fields = ["id", "captured_at"]
-
-
 class PreprocessedImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = PreprocessedImage
-        fields = ["id", "capture", "image", "created_at", "expression", "expression_confidence", "all_expressions"]
+        fields = ["id", "captured_frame", "image", "expression", "expression_confidence", 
+                  "all_expressions", "session", "user", "video", "created_at"]
         read_only_fields = ["id", "created_at"]
+
+
+class CapturedFrameSerializer(serializers.ModelSerializer):
+    preprocessed_version = PreprocessedImageSerializer(read_only=True)
+    
+    class Meta:
+        model = CapturedFrame
+        fields = ["id", "session", "image", "timestamp", "captured_at", "preprocessed_version"]
+        read_only_fields = ["id", "captured_at", "preprocessed_version"]
+
+
+
 
 
 class SessionReportSerializer(serializers.ModelSerializer):

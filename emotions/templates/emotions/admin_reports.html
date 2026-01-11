@@ -196,14 +196,14 @@
                     const summary = s.emotion_summary || {};
                     return `
                         <tr>
-                            <td>${s.id}</td>
+                            <td>${s.session_id}</td>
                             <td>${s.user_name || 'Unknown'}</td>
                             <td>${s.video_title || 'Unknown'}</td>
                             <td>${new Date(s.started_at).toLocaleDateString()}</td>
                             <td><span style="color: ${s.is_completed ? '#28a745' : '#ffc107'}">${s.is_completed ? '✓ Completed' : '⏸ Incomplete'}</span></td>
                             <td>${summary.total_captures || 0}</td>
                             <td>${summary.dominant_emotion || 'N/A'}</td>
-                            <td><button class="btn" onclick="viewSessionReport(${s.id})">📊 View</button></td>
+                            <td><button class="btn" onclick="viewSessionReport(${s.session_id})">📊 View</button></td>
                         </tr>
                     `;
                 }).join('');
@@ -213,7 +213,7 @@
         }
 
         function viewSessionReport(sessionId) {
-            window.open(`/report/${sessionId}/`, '_blank');
+            window.open(`/admin/session-report/${sessionId}/`, '_blank');
         }
 
         function viewVideoReport(videoId) {

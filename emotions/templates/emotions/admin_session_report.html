@@ -1,0 +1,271 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Report (Admin)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/emotions/css/admin-common.css">
+    <style>
+        .report-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .summary-label {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 30px 0;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="navbar">
+        <h1>📊 Session Detail Report</h1>
+        <div class="navbar-right">
+            <a href="{% url 'admin_reports' %}">Back to Reports</a>
+            <a href="{% url 'admin_dashboard' %}">Dashboard</a>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <div class="report-section">
+            <h2>📈 Session Summary</h2>
+            <div class="info-box">
+                <strong>User:</strong> <span id="userName"></span><br>
+                <strong>Video:</strong> <span id="videoName"></span><br>
+                <strong>Started:</strong> <span id="startTime"></span>
+                <div style="margin-top: 10px;">
+                    <strong>Status:</strong> <span id="completionStatus"></span>
+                </div>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-value" id="totalCaptures">0</div>
+                    <div class="summary-label">Total Captures</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="detectionRate">0%</div>
+                    <div class="summary-label">Detection Rate</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="dominantEmotion">-</div>
+                    <div class="summary-label">Dominant Emotion</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="engagementScore">0%</div>
+                    <div class="summary-label">Engagement Score</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="report-section">
+            <h2>🎭 Emotion Distribution</h2>
+            <div class="chart-container">
+                <canvas id="emotionChart"></canvas>
+            </div>
+        </div>
+
+        <div class="report-section">
+            <h2>Timeline</h2>
+            <div class="chart-container">
+                <canvas id="timelineChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sessionId = {{ session_id }};
+        let emotionChart = null;
+        let timelineChart = null;
+
+        async function loadReport() {
+            try {
+                // Fetch the user report API since it returns the same data structure we need
+                const response = await fetch(`/api/sessions/${sessionId}/report/`);
+
+                if (!response.ok) throw new Error('Failed to load report');
+
+                const data = await response.json();
+
+                // Fetch user name via session report endpoint or we can rely on what we have if we extend the API
+                // For now, let's look at the basic data. The report API might not expose the username directly 
+                // if it's designed for the 'viewer' (the user themselves).
+                // However, let's check the data fields.
+
+                // Since the report API is public (to the authenticated user), let's see. 
+                // The serializer `SessionReportViewSet` returns data from `SessionAnalyticsService`.
+                // Looking at `SessionAnalyticsService.py`, it doesn't return the username explicitly.
+                // We might need to fetch the session details separately or update the service.
+                // But let's stick to what we have. 
+
+                document.getElementById('videoName').textContent = data.video_name || 'Unknown Video';
+                document.getElementById('startTime').textContent = new Date(data.started_at).toLocaleString();
+                document.getElementById('totalCaptures').textContent = data.total_captures;
+                document.getElementById('detectionRate').textContent = data.detection_rate + '%';
+                document.getElementById('dominantEmotion').textContent = data.dominant_emotion || 'N/A';
+                document.getElementById('engagementScore').textContent = data.engagement_score + '%';
+
+                const statusSpan = document.getElementById('completionStatus');
+                if (data.completed_at) {
+                    statusSpan.textContent = 'Completed on ' + new Date(data.completed_at).toLocaleString();
+                    statusSpan.style.color = 'green';
+                } else {
+                    statusSpan.textContent = 'Incomplete';
+                    statusSpan.style.color = 'orange';
+                }
+
+                // Show message if no data
+                if (data.total_captures === 0) {
+                    // Handle empty state
+                } else {
+                    createEmotionChart(data.emotion_stats);
+                    createTimelineChart(data.emotion_timeline);
+                }
+
+                // Getting the username might require a separate call if not in the report JSON.
+                // But let's try to fetch the session object again for metadata if needed.
+                // For now, leaving User as 'User' if missing.
+                // Actually, let's fetch the session details from the list API if we really need it? 
+                // Or just update the DOM if we can.
+                // Wait, `data` is from `generate_session_report`.
+
+                // Let's create a quick fix to fetch the username if possible.
+                // We can fetch `/api/sessions/${sessionId}/` which is the Detail View.
+                const sessionDetailResponse = await fetch(`/api/sessions/${sessionId}/`);
+                if (sessionDetailResponse.ok) {
+                    const sessionData = await sessionDetailResponse.json();
+                    document.getElementById('userName').textContent = sessionData.user_name || 'User #' + sessionData.user;
+                }
+
+
+            } catch (error) {
+                console.error('Error loading report:', error);
+                document.body.innerHTML = '<h1 style="text-align:center; margin-top:50px; color:red">Error loading report</h1>';
+            }
+        }
+
+        function createEmotionChart(emotionStats) {
+            const ctx = document.getElementById('emotionChart').getContext('2d');
+
+            const labels = Object.keys(emotionStats);
+            const data = Object.values(emotionStats).map(s => s.percentage);
+            const colors = labels.map(emotion => getEmotionColor(emotion));
+
+            if (emotionChart) emotionChart.destroy();
+
+            emotionChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        }
+
+        function createTimelineChart(timeline) {
+            const ctx = document.getElementById('timelineChart').getContext('2d');
+
+            // Filter out no_face_detected for cleaner graph? Or keep them as gaps?
+            // Let's just map the emotions to a numeric value for a scatter/line plot or just show confidence?
+            // Timeline visualization is complex. Let's just show confidence over time for now.
+
+            const dataPoints = timeline.map((t, index) => ({
+                x: index, // or t.timestamp
+                y: t.confidence * 100,
+                emotion: t.expression
+            }));
+
+            timelineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeline.map(t => Math.round(t.timestamp) + 's'),
+                    datasets: [{
+                        label: 'Face Detection Confidence',
+                        data: dataPoints.map(d => d.y),
+                        borderColor: '#667eea',
+                        tension: 0.1,
+                        fill: true,
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                }
+            });
+        }
+
+        function getEmotionColor(emotion) {
+            const colors = {
+                'happy': '#FFD700', 'sad': '#4169E1', 'angry': '#DC143C',
+                'surprise': '#FF69B4', 'fear': '#9370DB', 'disgust': '#32CD32', 'neutral': '#A9A9A9'
+            };
+            return colors[emotion] || '#667eea';
+        }
+
+        loadReport();
+    </script>
+</body>
+
+</html>

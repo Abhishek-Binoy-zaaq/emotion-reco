@@ -90,23 +90,30 @@ class CapturedFrameAdmin(admin.ModelAdmin):
         if obj.image:
             return format_html('<img src="{}" style="max-height: 100px; max-width: 200px;" />', obj.image.url)
         return "No image"
-    image_preview.short_description = 'Preview'
+    image_preview.short_description = 'Original'
 
 
 @admin.register(PreprocessedImage)
 class PreprocessedImageAdmin(admin.ModelAdmin):
-    list_display = ['id', 'get_capture_id', 'image_preview', 'expression', 'expression_confidence', 'created_at']
-    list_filter = ['expression', 'created_at']
-    search_fields = ['expression']
-    readonly_fields = ['created_at', 'image_preview', 'capture', 'expression', 'expression_confidence', 'all_expressions']
+    list_display = ['id', 'session', 'user', 'video', 'expression', 'confidence_display', 'image_preview', 'created_at']
+    list_filter = ['expression', 'session', 'user', 'video', 'created_at']
+    search_fields = ['session__video__title', 'user__username', 'expression']
+    readonly_fields = ['created_at', 'image_preview', 'captured_frame_link']
     
-    def get_capture_id(self, obj):
-        return f"Capture {obj.capture.id}"
-    get_capture_id.short_description = 'Original Capture'
+    def confidence_display(self, obj):
+        return f"{obj.expression_confidence:.2%}"
+    confidence_display.short_description = 'Confidence'
     
     def image_preview(self, obj):
         if obj.image:
             return format_html('<img src="{}" style="max-height: 100px; max-width: 200px;" />', obj.image.url)
         return "No image"
-    image_preview.short_description = 'Preview'
+    image_preview.short_description = 'Processed'
+    
+    def captured_frame_link(self, obj):
+        return format_html('<a href="/admin/emotions/capturedframe/{}/change/">Frame {}</a>', obj.captured_frame.id, obj.captured_frame.id)
+    captured_frame_link.short_description = 'Raw Frame'
+
+
+
 

@@ -88,7 +88,7 @@ class SessionReport(models.Model):
     
     def get_emotion_summary(self):
         """Calculate emotion statistics for this session"""
-        captures = self.captures.all().select_related('preprocessed_version')
+        captures = self.captures.all()
         if not captures:
             return {}
         
@@ -96,11 +96,10 @@ class SessionReport(models.Model):
         total_captures = 0
         
         for capture in captures:
-            if hasattr(capture, 'preprocessed_version') and capture.preprocessed_version:
-                expression = capture.preprocessed_version.expression
-                if expression and expression not in ['error', 'no_face_detected']:
-                    emotion_counts[expression] = emotion_counts.get(expression, 0) + 1
-                    total_captures += 1
+            expression = capture.expression
+            if expression and expression not in ['error', 'no_face_detected']:
+                emotion_counts[expression] = emotion_counts.get(expression, 0) + 1
+                total_captures += 1
         
         # Calculate percentages
         emotion_percentages = {
@@ -134,18 +133,27 @@ class CapturedFrame(models.Model):
 
 
 class PreprocessedImage(models.Model):
-    """Represents the preprocessed (cropped) face from a captured frame"""
-    capture = models.OneToOneField(CapturedFrame, on_delete=models.CASCADE, related_name='preprocessed_version')
+    """Stores the preprocessed version of a frame and its analysis data"""
+    captured_frame = models.OneToOneField(CapturedFrame, on_delete=models.CASCADE, related_name='preprocessed_version')
     image = models.ImageField(upload_to='preprocessed/')
+    
+    # Analysis results
+    expression = models.CharField(max_length=50)
+    expression_confidence = models.FloatField()
+    all_expressions = models.JSONField()
+    
+    # Denormalized fields for easy access/filtering
+    session = models.ForeignKey(SessionReport, on_delete=models.CASCADE, related_name='preprocessed_images')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='preprocessed_images')
+    video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='preprocessed_images')
+    
     created_at = models.DateTimeField(auto_now_add=True)
     
-    # Expression analysis results (moved from CapturedFrame)
-    expression = models.CharField(max_length=50, blank=True, null=True)
-    expression_confidence = models.FloatField(blank=True, null=True)
-    all_expressions = models.JSONField(blank=True, null=True)
-    
     def __str__(self):
-        return f"Preprocessed frame {self.capture.id} - {self.expression or 'pending'}"
+        return f"Analysis for Frame {self.captured_frame.id} ({self.expression})"
+    
+    class Meta:
+        ordering = ['created_at']
 
 
 

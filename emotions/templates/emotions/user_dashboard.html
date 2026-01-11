@@ -5,227 +5,343 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Dashboard</title>
-    <link rel="stylesheet" href="/static/emotions/css/themes.css">
-    <link rel="stylesheet" href="/static/emotions/css/admin-common.css">
+    <title>Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 1000;
+        :root {
+            --primary-gradient: linear-gradient(135deg, #2D9CDB 0%, #2F80ED 100%);
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            --text-dark: #2d3436;
+            --text-light: #636e72;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: #f7f9fc;
+            min-height: 100vh;
+        }
+
+        /* Header Section */
+        .dashboard-header {
+            background: var(--primary-gradient);
+            padding: 2rem 1.5rem 4rem;
+            color: white;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+            box-shadow: 0 10px 40px rgba(47, 128, 237, 0.2);
+        }
+
+        .header-top {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            backdrop-filter: blur(5px);
+            margin-bottom: 2rem;
         }
 
-        .modal-content {
+        .menu-icon,
+        .notification-icon {
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
+
+        .menu-icon:hover,
+        .notification-icon:hover {
+            opacity: 1;
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .search-container {
             background: white;
-            padding: 40px;
-            border-radius: 16px;
-            max-width: 800px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            text-align: center;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
         }
 
-        .category-grid {
+        .search-input {
+            width: 100%;
+            border: none;
+            outline: none;
+            margin-left: 10px;
+            font-size: 1rem;
+            color: var(--text-dark);
+        }
+
+        .search-icon {
+            color: #b2bec3;
+        }
+
+        /* Main Content */
+        .container {
+            padding: 0 1.5rem;
+            margin-top: -2rem;
+            /* Overlap header */
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Category Grid */
+        .categories-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 2rem;
+        }
+
+        @media (min-width: 768px) {
+            .categories-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 20px;
+                padding-top: 1rem;
+            }
         }
 
         .category-card {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 25px;
-            border-radius: 12px;
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem 0.5rem;
+            text-align: center;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
             cursor: pointer;
-            transition: all 0.3s;
-            border: 2px solid transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1/1;
         }
 
         .category-card:hover {
             transform: translateY(-5px);
-            border-color: #667eea;
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.2);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .category-card.active {
+            background: linear-gradient(135deg, #2D9CDB 0%, #2F80ED 100%);
+            color: white;
+        }
+
+        .category-icon {
+            font-size: 2rem;
+            margin-bottom: 0.8rem;
+            transition: transform 0.2s;
+        }
+
+        .category-card:hover .category-icon {
+            transform: scale(1.1);
         }
 
         .category-name {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-dark);
         }
 
-        .category-count {
-            font-size: 0.9em;
-            color: #666;
+        .category-card.active .category-name {
+            color: white;
+        }
+
+        /* Video List */
+        .videos-section {
+            padding-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .videos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .video-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .video-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            background: #eee;
+        }
+
+        .video-info {
+            padding: 1.2rem;
+        }
+
+        .video-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+        }
+
+        .video-meta {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-light);
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Navbar Links (retained functionality) */
+        .nav-links {
+            position: absolute;
+            top: 2rem;
+            right: 1.5rem;
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 5px 10px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            transition: background 0.2s;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Loading */
+        .loading-placeholder {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-light);
         }
     </style>
 </head>
 
 <body>
-    <div class="navbar">
-        <h1>🎬 Video Library</h1>
-        <div class="navbar-right">
-            <a href="{% url 'user_sessions' %}">My Sessions</a>
-            <span>Welcome, {{ user.username }}</span>
-            <a href="{% url 'logout' %}">Logout</a>
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="nav-links">
+            <a href="{% url 'user_sessions' %}" class="nav-link">My Sessions</a>
+            <a href="{% url 'logout' %}" class="nav-link">Logout</a>
         </div>
-    </div>
 
+        <div class="header-top">
+            <div class="menu-icon">☰</div>
+            <div class="page-title">Dashboard</div>
+            <div class="notification-icon">🔔</div>
+        </div>
+
+        <div class="search-container">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" placeholder="Search categories..."
+                oninput="filterVideos(this.value)">
+        </div>
+    </header>
+
+    <!-- Main Content -->
     <div class="container">
-        <div class="header-actions">
-            <h2>Select a Video to Watch</h2>
-            <div>
-                <label style="margin-right: 10px;">Filter by Category:</label>
-                <select id="categoryFilter" style="padding: 10px; border-radius: 6px; border: 2px solid #667eea;">
-                    <option value="">All Categories</option>
-                </select>
-            </div>
+        <!-- Categories -->
+        <div id="categoryGrid" class="categories-grid">
+            <!-- Categories injected by JS -->
+            <div class="loading-placeholder">Loading categories...</div>
         </div>
-        <div id="videosList" class="videos-grid">
-            <div style="text-align: center; padding: 50px; color: #666; font-style: italic;">
-                Please select a category to view videos.
-            </div>
-        </div>
-    </div>
 
-    <!-- Blocking Category Modal -->
-    <div id="categoryModal" class="modal-overlay">
-        <div class="modal-content">
-            <h2 style="font-size: 2em; margin-bottom: 10px; color: #667eea;">👋 Welcome!</h2>
-            <p style="color: #666; font-size: 1.1em; margin-bottom: 30px;">Please select a category to start watching
-                videos.</p>
-
-            <div id="modalCategories" class="category-grid">
-                <!-- Categories will be injected here -->
-            </div>
-        </div>
+        <!-- Videos Section Removed -->
     </div>
 
     <script>
+        // Styling configuration for categories
+        const categoryStyles = [
+            { icon: '⚙️', color: '#ff7675' },
+            { icon: '💬', color: '#55efc4' },
+            { icon: '👥', color: '#a29bfe' },
+            { icon: '📍', color: '#0984e3' },
+            { icon: '📅', color: '#fdcb6e' },
+            { icon: '🌤️', color: '#74b9ff' },
+            { icon: '📷', color: '#00cec9' },
+            { icon: '🎵', color: '#e84393' },
+            { icon: '📁', color: '#636e72' }
+        ];
+
         async function loadCategories() {
             try {
                 const response = await fetch('/api/categories/');
                 const data = await response.json();
                 const categories = data.results || data;
 
-                const select = document.getElementById('categoryFilter');
-                const modalGrid = document.getElementById('modalCategories');
+                const grid = document.getElementById('categoryGrid');
+                grid.innerHTML = '';
 
-                // Clear existing items to prevent duplication
-                select.innerHTML = '<option value="">All Categories</option>';
-                modalGrid.innerHTML = '';
-
-                // Add "All Categories" to modal first
-                const allCard = createCategoryCard({ id: '', name: 'All Categories', video_count: 'Show All' });
-                modalGrid.appendChild(allCard);
-
-                categories.forEach(cat => {
-                    // Populate Dropdown
-                    const option = document.createElement('option');
-                    option.value = cat.id;
-                    option.textContent = `${cat.name} (${cat.video_count})`;
-                    select.appendChild(option);
-
-                    // Populate Modal
-                    const card = createCategoryCard(cat);
-                    modalGrid.appendChild(card);
+                categories.forEach((cat, index) => {
+                    const styleIndex = (index) % categoryStyles.length;
+                    grid.appendChild(createCategoryCard(cat, styleIndex));
                 });
 
-                select.addEventListener('change', () => loadVideos(select.value));
             } catch (error) {
                 console.error('Error loading categories:', error);
             }
         }
 
-        function createCategoryCard(cat) {
+        function createCategoryCard(cat, styleIndex) {
+            const style = categoryStyles[styleIndex] || categoryStyles[categoryStyles.length - 1];
             const div = document.createElement('div');
+
             div.className = 'category-card';
-            div.onclick = () => selectCategory(cat.id);
+            div.onclick = () => {
+                window.location.href = `/category/${cat.id}/`;
+            };
+
+            // Icon handling
+            const icon = style.icon;
+
             div.innerHTML = `
+                <div class="category-icon" style="color: ${style.color}">${icon}</div>
                 <div class="category-name">${cat.name}</div>
-                <div class="category-count">
-                    ${cat.id === '' ? '📁 ' + cat.video_count : '🎬 ' + cat.video_count + ' Videos'}
-                </div>
             `;
             return div;
         }
 
-        function selectCategory(categoryId) {
-            const select = document.getElementById('categoryFilter');
-            select.value = categoryId;
-            document.getElementById('categoryModal').style.display = 'none';
-            loadVideos(categoryId);
+        function filterCategories(query) {
+            const lowerQuery = query.toLowerCase();
+            document.querySelectorAll('.category-card').forEach(card => {
+                const name = card.querySelector('.category-name').textContent.toLowerCase();
+                card.style.display = name.includes(lowerQuery) ? 'flex' : 'none';
+            });
         }
 
-        async function loadVideos(categoryId = '') {
-            try {
-                // Ensure categoryId is used if passed, otherwise get from filter (handling potential empty string for 'All')
-                if (categoryId === undefined) categoryId = document.getElementById('categoryFilter').value;
-
-                const url = categoryId ? `/api/videos/?category=${categoryId}` : '/api/videos/';
-                const response = await fetch(url);
-                const data = await response.json();
-
-                // Handle both paginated and non-paginated responses
-                const videos = data.results || data;
-
-                const container = document.getElementById('videosList');
-
-                if (!videos || videos.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No videos available yet. Please contact admin.</p>';
-                    return;
-                }
-
-                container.innerHTML = videos.map(video => `
-                    <div class="video-card" onclick="startSession(${video.id})">
-                        <video class="video-thumbnail" src="${video.video_file}"></video>
-                        <div class="video-info">
-                            <div class="video-title">${video.title}</div>
-                            ${video.category_name ? `<p style="color: #667eea; font-size: 0.85em; margin: 5px 0;">📁 ${video.category_name}</p>` : ''}
-                            <p style="color: #666; margin: 10px 0;">${video.description || 'No description'}</p>
-                            <div class="video-stats">
-                                ⏱️ ${formatDuration(video.duration)}
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (error) {
-            } catch (error) {
-                console.error('Error loading videos:', error);
-                document.getElementById('videosList').innerHTML = `<div style="text-align: center; color: #dc3545; padding: 40px;">
-                    <h3>Error loading videos</h3>
-                    <p>${error.message}</p>
-                    <p>Please check the console for more details.</p>
-                </div>`;
-            }
-        }
-
-        function startSession(videoId) {
-            window.location.href = `/session/${videoId}/`;
-        }
-
-        function formatDuration(seconds) {
-            if (!seconds && seconds !== 0) return '0:00';
-            const val = parseFloat(seconds);
-            if (isNaN(val)) return '0:00';
-
-            const mins = Math.floor(val / 60);
-            const secs = Math.floor(val % 60);
-            return `${mins}:${secs.toString().padStart(2, '0')}`;
-        }
-
+        // Initialize
         loadCategories();
-        // Removed initial loadVideos() call to enforce selection
+
     </script>
 </body>
 
