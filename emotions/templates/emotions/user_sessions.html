@@ -1,0 +1,193 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Sessions</title>
+    <link rel="stylesheet" href="/static/emotions/css/themes.css">
+    <link rel="stylesheet" href="/static/emotions/css/admin-common.css">
+    <style>
+        .session-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+
+        .session-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .session-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .session-date {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .session-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-incomplete {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="navbar">
+        <h1>📊 My Sessions</h1>
+        <div class="navbar-right">
+            <a href="{% url 'user_dashboard' %}">Video Library</a>
+            <span>Welcome, {{ user.username }}</span>
+            <a href="{% url 'logout' %}">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header-actions">
+            <h2>Session History</h2>
+            <a href="{% url 'user_dashboard' %}" class="btn btn-primary">🎬 Watch New Video</a>
+        </div>
+
+        <div id="sessionsList"></div>
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">📭</div>
+            <h3>No Sessions Yet</h3>
+            <p>You haven't watched any videos yet. Start by selecting a video from the library!</p>
+            <a href="{% url 'user_dashboard' %}" class="btn btn-primary" style="margin-top: 20px;">Browse Videos</a>
+        </div>
+    </div>
+
+    <script>
+        async function loadSessions() {
+            try {
+                const response = await fetch('/api/sessions/');
+                const data = await response.json();
+
+                const sessions = data.results || data;
+
+                if (!sessions || sessions.length === 0) {
+                    document.getElementById('emptyState').style.display = 'block';
+                    return;
+                }
+
+                const container = document.getElementById('sessionsList');
+                container.innerHTML = sessions.map(session => {
+                    const date = new Date(session.started_at).toLocaleString();
+                    const summary = session.emotion_summary || {};
+                    const isCompleted = session.is_completed;
+
+                    return `
+                        <div class="session-card" onclick="viewReport(${session.session_id})">
+                            <div class="session-header">
+                                <div>
+                                    <div class="session-title">🎬 ${session.video_title || 'Unknown Video'}</div>
+                                    <div class="session-date">${date}</div>
+                                </div>
+                                <span class="status-badge ${isCompleted ? 'status-completed' : 'status-incomplete'}">
+                                    ${isCompleted ? '✓ Completed' : '⏸ Incomplete'}
+                                </span>
+                            </div>
+                            
+                            ${isCompleted ? `
+                                <div class="session-stats">
+                                    <div class="stat-item">
+                                        <div class="stat-value">${summary.total_captures || 0}</div>
+                                        <div class="stat-label">Captures</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-value">${summary.dominant_emotion || 'N/A'}</div>
+                                        <div class="stat-label">Dominant Emotion</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-value">${Object.keys(summary.counts || {}).length}</div>
+                                        <div class="stat-label">Emotions Detected</div>
+                                    </div>
+                                </div>
+                            ` : '<p style="color: #856404; margin-top: 10px;">⚠️ This session was not completed</p>'}
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+                document.getElementById('sessionsList').innerHTML =
+                    '<p style="text-align: center; color: #dc3545; padding: 40px;">Error loading sessions. Please refresh the page.</p>';
+            }
+        }
+
+        function viewReport(sessionId) {
+            window.location.href = `/report/${sessionId}/`;
+        }
+
+        loadSessions();
+    </script>
+</body>
+
+</html>

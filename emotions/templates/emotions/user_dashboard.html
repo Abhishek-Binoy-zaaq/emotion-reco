@@ -1,0 +1,348 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #2D9CDB 0%, #2F80ED 100%);
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            --text-dark: #2d3436;
+            --text-light: #636e72;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: #f7f9fc;
+            min-height: 100vh;
+        }
+
+        /* Header Section */
+        .dashboard-header {
+            background: var(--primary-gradient);
+            padding: 2rem 1.5rem 4rem;
+            color: white;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+            box-shadow: 0 10px 40px rgba(47, 128, 237, 0.2);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .menu-icon,
+        .notification-icon {
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
+
+        .menu-icon:hover,
+        .notification-icon:hover {
+            opacity: 1;
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .search-container {
+            background: white;
+            border-radius: 15px;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-input {
+            width: 100%;
+            border: none;
+            outline: none;
+            margin-left: 10px;
+            font-size: 1rem;
+            color: var(--text-dark);
+        }
+
+        .search-icon {
+            color: #b2bec3;
+        }
+
+        /* Main Content */
+        .container {
+            padding: 0 1.5rem;
+            margin-top: -2rem;
+            /* Overlap header */
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Category Grid */
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 2rem;
+        }
+
+        @media (min-width: 768px) {
+            .categories-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 20px;
+                padding-top: 1rem;
+            }
+        }
+
+        .category-card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem 0.5rem;
+            text-align: center;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1/1;
+        }
+
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .category-card.active {
+            background: linear-gradient(135deg, #2D9CDB 0%, #2F80ED 100%);
+            color: white;
+        }
+
+        .category-icon {
+            font-size: 2rem;
+            margin-bottom: 0.8rem;
+            transition: transform 0.2s;
+        }
+
+        .category-card:hover .category-icon {
+            transform: scale(1.1);
+        }
+
+        .category-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-dark);
+        }
+
+        .category-card.active .category-name {
+            color: white;
+        }
+
+        /* Video List */
+        .videos-section {
+            padding-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .videos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .video-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .video-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            background: #eee;
+        }
+
+        .video-info {
+            padding: 1.2rem;
+        }
+
+        .video-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+        }
+
+        .video-meta {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-light);
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Navbar Links (retained functionality) */
+        .nav-links {
+            position: absolute;
+            top: 2rem;
+            right: 1.5rem;
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 5px 10px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            transition: background 0.2s;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Loading */
+        .loading-placeholder {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-light);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="nav-links">
+            <a href="{% url 'user_sessions' %}" class="nav-link">My Sessions</a>
+            <a href="{% url 'logout' %}" class="nav-link">Logout</a>
+        </div>
+
+        <div class="header-top">
+            <div class="menu-icon">☰</div>
+            <div class="page-title">Dashboard</div>
+            <div class="notification-icon">🔔</div>
+        </div>
+
+        <div class="search-container">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" placeholder="Search categories..."
+                oninput="filterVideos(this.value)">
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Categories -->
+        <div id="categoryGrid" class="categories-grid">
+            <!-- Categories injected by JS -->
+            <div class="loading-placeholder">Loading categories...</div>
+        </div>
+
+        <!-- Videos Section Removed -->
+    </div>
+
+    <script>
+        // Styling configuration for categories
+        const categoryStyles = [
+            { icon: '⚙️', color: '#ff7675' },
+            { icon: '💬', color: '#55efc4' },
+            { icon: '👥', color: '#a29bfe' },
+            { icon: '📍', color: '#0984e3' },
+            { icon: '📅', color: '#fdcb6e' },
+            { icon: '🌤️', color: '#74b9ff' },
+            { icon: '📷', color: '#00cec9' },
+            { icon: '🎵', color: '#e84393' },
+            { icon: '📁', color: '#636e72' }
+        ];
+
+        async function loadCategories() {
+            try {
+                const response = await fetch('/api/categories/');
+                const data = await response.json();
+                const categories = data.results || data;
+
+                const grid = document.getElementById('categoryGrid');
+                grid.innerHTML = '';
+
+                categories.forEach((cat, index) => {
+                    const styleIndex = (index) % categoryStyles.length;
+                    grid.appendChild(createCategoryCard(cat, styleIndex));
+                });
+
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        function createCategoryCard(cat, styleIndex) {
+            const style = categoryStyles[styleIndex] || categoryStyles[categoryStyles.length - 1];
+            const div = document.createElement('div');
+
+            div.className = 'category-card';
+            div.onclick = () => {
+                window.location.href = `/category/${cat.id}/`;
+            };
+
+            // Icon handling
+            const icon = style.icon;
+
+            div.innerHTML = `
+                <div class="category-icon" style="color: ${style.color}">${icon}</div>
+                <div class="category-name">${cat.name}</div>
+            `;
+            return div;
+        }
+
+        function filterCategories(query) {
+            const lowerQuery = query.toLowerCase();
+            document.querySelectorAll('.category-card').forEach(card => {
+                const name = card.querySelector('.category-name').textContent.toLowerCase();
+                card.style.display = name.includes(lowerQuery) ? 'flex' : 'none';
+            });
+        }
+
+        // Initialize
+        loadCategories();
+
+    </script>
+</body>
+
+</html>
