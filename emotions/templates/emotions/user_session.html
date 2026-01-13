@@ -262,7 +262,14 @@
             }
         }
 
-        startBtn.addEventListener('click', async () => {
+        let isStarting = false;
+
+        async function startSession() {
+            if (isRecording || sessionId || isStarting) return;
+            
+            isStarting = true;
+            updateStatus('Creating session...', 'info');
+
             try {
                 const response = await fetch('/api/sessions/', {
                     method: 'POST',
@@ -284,15 +291,24 @@
                 startBtn.disabled = true;
                 stopBtn.disabled = false;
 
-                videoPlayer.play();
+                if (videoPlayer.paused) {
+                    videoPlayer.play();
+                }
+                
                 // Reduced to 1 capture per second to avoid overwhelming the server
                 captureInterval = setInterval(captureFrame, 1000);
 
                 updateStatus('Session started! Recording emotions...', 'success');
             } catch (error) {
                 updateStatus('Error: ' + error.message, 'warning');
+            } finally {
+                isStarting = false;
             }
-        });
+        }
+
+        startBtn.addEventListener('click', startSession);
+        
+        videoPlayer.addEventListener('play', startSession);
 
         stopBtn.addEventListener('click', async () => {
             isRecording = false;
@@ -358,22 +374,30 @@
         function updateStats(data) {
             document.getElementById('captureCount').textContent = captureCount;
 
-            if (data.expression && data.expression !== 'error' && data.expression !== 'no_face_detected') {
-                successfulDetections++;
-                emotionCounts[data.expression] = (emotionCounts[data.expression] || 0) + 1;
+            // Check if preprocessed_version exists (it contains the analysis results)
+            const analysis = data.preprocessed_version;
 
-                const emoji = getEmotionEmoji(data.expression);
+            if (analysis && analysis.expression && analysis.expression !== 'error' && analysis.expression !== 'no_face_detected') {
+                successfulDetections++;
+                emotionCounts[analysis.expression] = (emotionCounts[analysis.expression] || 0) + 1;
+
+                const emoji = getEmotionEmoji(analysis.expression);
                 currentEmotion.innerHTML = `
                     <div class="emotion-indicator">
-                        ${emoji} ${data.expression} (${data.expression_confidence.toFixed(1)}%)
+                        ${emoji} ${analysis.expression} (${analysis.expression_confidence.toFixed(1)}%)
+                    </div>
+                `;
+            } else if (!analysis) {
+                // Handle case where no face was detected or analysis failed
+                currentEmotion.innerHTML = `
+                    <div class="emotion-indicator" style="background: #ccc;">
+                        😐 No face detected
                     </div>
                 `;
             }
 
-
-
             if (Object.keys(emotionCounts).length > 0) {
-
+                // Optional: Update some live chart or stats if needed
             }
         }
 

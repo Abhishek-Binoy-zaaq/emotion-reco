@@ -3,15 +3,20 @@ async function loadCategories() {
         const response = await fetch('/api/categories/');
         const data = await response.json();
         const categories = data.results || data;
-        
+
         const select = document.getElementById('category');
         select.innerHTML = '<option value="">No Category</option>'; // Clear existing options
-        
+
+        const seenIds = new Set();
+
         categories.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat.id;
-            option.textContent = cat.name;
-            select.appendChild(option);
+            if (!seenIds.has(cat.id)) {
+                seenIds.add(cat.id);
+                const option = document.createElement('option');
+                option.value = cat.id;
+                option.textContent = cat.name;
+                select.appendChild(option);
+            }
         });
     } catch (error) {
         console.error('Error loading categories:', error);
@@ -22,17 +27,17 @@ async function loadVideos() {
     try {
         const response = await fetch('/api/videos/');
         const data = await response.json();
-        
+
         // Handle both paginated and non-paginated responses
         const videos = data.results || data;
-        
+
         const container = document.getElementById('videosList');
-        
+
         if (!videos || videos.length === 0) {
             container.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No videos uploaded yet. Click "Upload Video" to add one.</p>';
             return;
         }
-        
+
         container.innerHTML = videos.map(video => `
             <div class="video-card">
                 <video class="video-thumbnail" src="${video.video_file}" controls></video>
@@ -45,7 +50,7 @@ async function loadVideos() {
                         🎯 ${video.average_engagement || 0}% engagement
                     </div>
                     <div class="video-actions">
-                        <button class="btn btn-primary" onclick='editVideo(${JSON.stringify({id: video.id, title: video.title, description: video.description, category: video.category})})'>✏️ Edit</button>
+                        <button class="btn btn-primary" onclick='editVideo(${JSON.stringify({ id: video.id, title: video.title, description: video.description, category: video.category })})'>✏️ Edit</button>
                         <button class="btn btn-danger" onclick='deleteVideo(${video.id}, ${JSON.stringify(video.title)})'>🗑️ Delete</button>
                     </div>
                 </div>
@@ -92,10 +97,10 @@ function editVideo(video) {
 
 document.getElementById('uploadForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const mode = e.target.dataset.mode;
     const videoId = e.target.dataset.videoId;
-    
+
     if (mode === 'edit') {
         // Edit existing video
         const categoryValue = document.getElementById('category').value;
@@ -104,7 +109,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
             description: document.getElementById('description').value,
             category: categoryValue || null
         };
-        
+
         try {
             const response = await fetch(`/api/videos/${videoId}/`, {
                 method: 'PATCH',
@@ -114,7 +119,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
                 },
                 body: JSON.stringify(data)
             });
-            
+
             if (response.ok) {
                 closeUploadModal();
                 loadVideos();
@@ -136,12 +141,12 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
         }
         formData.append('is_active', 'true');
         formData.append('video_file', document.getElementById('videoFile').files[0]);
-        
+
         const videoEl = document.createElement('video');
         videoEl.src = URL.createObjectURL(document.getElementById('videoFile').files[0]);
         videoEl.onloadedmetadata = async () => {
             formData.append('duration', Math.floor(videoEl.duration));
-            
+
             try {
                 const response = await fetch('/api/videos/', {
                     method: 'POST',
@@ -150,7 +155,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
                     },
                     body: formData
                 });
-                
+
                 if (response.ok) {
                     closeUploadModal();
                     loadVideos();
@@ -167,7 +172,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
 
 async function deleteVideo(id, title) {
     if (!confirm(`Are you sure you want to delete "${title}"?\n\nThis will also delete all associated sessions and captures.`)) return;
-    
+
     try {
         const response = await fetch(`/api/videos/${id}/`, {
             method: 'DELETE',
@@ -175,7 +180,7 @@ async function deleteVideo(id, title) {
                 'X-CSRFToken': getCookie('csrftoken')
             }
         });
-        
+
         if (response.ok) {
             alert('Video deleted successfully!');
             loadVideos();
@@ -220,14 +225,14 @@ async function loadCategoriesList() {
         const response = await fetch('/api/categories/');
         const data = await response.json();
         const categories = data.results || data;
-        
+
         const container = document.getElementById('categoriesList');
-        
+
         if (!categories || categories.length === 0) {
             container.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No categories yet</p>';
             return;
         }
-        
+
         container.innerHTML = categories.map(cat => `
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f8f9fa; margin-bottom: 10px; border-radius: 6px;">
                 <div>
@@ -244,9 +249,9 @@ async function loadCategoriesList() {
 
 document.getElementById('categoryForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const name = document.getElementById('categoryName').value;
-    
+
     try {
         const response = await fetch('/api/categories/', {
             method: 'POST',
@@ -256,7 +261,7 @@ document.getElementById('categoryForm').addEventListener('submit', async (e) => 
             },
             body: JSON.stringify({ name })
         });
-        
+
         if (response.ok) {
             document.getElementById('categoryName').value = '';
             loadCategoriesList();
@@ -272,7 +277,7 @@ document.getElementById('categoryForm').addEventListener('submit', async (e) => 
 
 async function deleteCategory(id, name) {
     if (!confirm(`Delete category "${name}"?\n\nVideos in this category will not be deleted, just uncategorized.`)) return;
-    
+
     try {
         const response = await fetch(`/api/categories/${id}/`, {
             method: 'DELETE',
@@ -280,7 +285,7 @@ async function deleteCategory(id, name) {
                 'X-CSRFToken': getCookie('csrftoken')
             }
         });
-        
+
         if (response.ok) {
             loadCategoriesList();
             alert('Category deleted successfully!');
