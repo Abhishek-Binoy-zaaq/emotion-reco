@@ -12,6 +12,7 @@ class VideoSessionManager {
         this.captureCount = 0;
         this.successfulDetections = 0;
         this.emotionCounts = {};
+        this.isStarting = false;
 
         // DOM elements
         this.videoFile = document.getElementById('videoFile');
@@ -43,6 +44,7 @@ class VideoSessionManager {
         this.viewReportBtn.addEventListener('click', () => this.viewReport());
         this.videoPlayer.addEventListener('timeupdate', () => this.updateVideoTime());
         this.videoPlayer.addEventListener('ended', () => this.handleVideoEnd());
+        this.videoPlayer.addEventListener('play', () => this.startSession());
 
         this.initWebcam();
     }
@@ -78,7 +80,10 @@ class VideoSessionManager {
     }
 
     async startSession() {
+        if (this.isRecording || this.sessionId || this.isStarting) return;
+
         try {
+            this.isStarting = true;
             this.updateStatus('Creating session...', 'info');
 
             // Create session
@@ -112,7 +117,9 @@ class VideoSessionManager {
             this.videoFile.disabled = true;
 
             // Start video playback
-            this.videoPlayer.play();
+            if (this.videoPlayer.paused) {
+                this.videoPlayer.play();
+            }
 
             // Start capturing frames (3 per second = every 333ms)
             this.captureInterval = setInterval(() => this.captureFrame(), 333);
@@ -122,6 +129,8 @@ class VideoSessionManager {
         } catch (error) {
             this.updateStatus('Error starting session: ' + error.message, 'warning');
             console.error('Start session error:', error);
+        } finally {
+            this.isStarting = false;
         }
     }
 
@@ -247,18 +256,7 @@ class VideoSessionManager {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 
-    getEmotionEmoji(emotion) {
-        const emojis = {
-            'happy': '😊',
-            'sad': '😢',
-            'angry': '😠',
-            'surprise': '😲',
-            'fear': '😨',
-            'disgust': '🤢',
-            'neutral': '😐'
-        };
-        return emojis[emotion] || '😶';
-    }
+   
 
     getCookie(name) {
         let cookieValue = null;

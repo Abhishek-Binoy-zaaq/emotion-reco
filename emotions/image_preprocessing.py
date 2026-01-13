@@ -7,7 +7,23 @@ import numpy as np
 from pathlib import Path
 import sys
 from deepface import DeepFace
+import torch
+import torchvision.transforms as transforms
+from PIL import Image
+from .emotion_model import load_trained_model
 
+# Global model configuration
+MODEL = None
+MODEL_PATH = r'c:\Users\abhis\tutorials\emotions\models\model.pth'
+EMOTION_LABELS = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
+
+def get_emotion_model():
+    """Lazy load the model"""
+    global MODEL
+    if MODEL is None:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        MODEL = load_trained_model(MODEL_PATH, device)
+    return MODEL
 
 class ImagePreprocessor:
     """Handles image preprocessing before emotion detection"""
@@ -575,6 +591,57 @@ class EnhancedEmotionDetectionService:
         """
         Detect emotion from preprocessed face image
         """
-        # Placeholder or remove if not used
-        print("Warning: detect_emotion not implemented", flush=True)
-        return {'success': False, 'error': 'Not implemented'}
+        try:
+            model = get_emotion_model()
+            if model is None:
+                return {'success': False, 'error': 'Model not loaded'}
+
+            # Prepare image for model
+            # 1. Convert BGR to RGB
+            rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            
+            # 2. Convert to PIL
+            pil_image = Image.fromarray(rgb_image)
+            
+            # 3. Apply transforms (Resize 224x224, Normalize)
+            transform = transforms.Compose([
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                   std=[0.229, 0.224, 0.225])
+            ])
+            
+            input_tensor = transform(pil_image).unsqueeze(0) # Add batch dimension
+            
+            # 4. Inference
+            device = next(model.parameters()).device
+            input_tensor = input_tensor.to(device)
+            
+            with torch.no_grad():
+                outputs = model(input_tensor)
+                probabilities = torch.nn.functional.softmax(outputs, dim=1)
+                
+                # Get predicted class and confidence
+                confidence, predicted_idx = torch.max(probabilities, 1)
+                predicted_idx = predicted_idx.item()
+                confidence_score = confidence.item() * 100
+                
+                # Get all emotions
+                all_emotions = {
+                    label: prob.item() * 100 
+                    for label, prob in zip(EMOTION_LABELS, probabilities[0])
+                }
+                
+                expression = EMOTION_LABELS[predicted_idx]
+                
+                return {
+                    'success': True,
+                    'expression': expression.lower(),
+                    'confidence': confidence_score,
+                    'all_emotions': all_emotions
+                }
+
+        except Exception as e:
+            error_msg = str(e)
+            print(f"❌ Error in custom model inference: {error_msg}", flush=True)
+            return {'success': False, 'error': error_msg}
