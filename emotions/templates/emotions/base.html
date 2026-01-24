@@ -1,0 +1,178 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Emotion AI{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS (Play CDN for immediate usage) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        accent: {
+                            500: '#6366f1', // Indigo
+                            600: '#4f46e5',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .glass-panel {
+                @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
+            }
+            .btn-primary {
+                @apply bg-gradient-to-r from-brand-500 to-accent-500 text-white font-medium py-2 px-6 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-200 active:scale-95;
+            }
+            .btn-secondary {
+                @apply bg-white text-gray-700 font-medium py-2 px-6 rounded-xl border border-gray-200 hover:bg-gray-50 hover:shadow-md transition-all duration-200;
+            }
+            .btn-danger {
+                @apply bg-red-50 text-red-600 font-medium py-2 px-6 rounded-xl border border-red-200 hover:bg-red-100 hover:shadow-md transition-all duration-200;
+            }
+            /* Table Styles */
+            .table-container {
+                @apply overflow-x-auto rounded-xl border border-gray-200 shadow-sm;
+            }
+            .data-table {
+                @apply min-w-full divide-y divide-gray-200;
+            }
+            .data-table th {
+                @apply px-6 py-4 bg-gray-50 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider;
+            }
+            .data-table td {
+                @apply px-6 py-4 whitespace-nowrap text-sm text-gray-700 bg-white;
+            }
+            .data-table tr:hover td {
+                @apply bg-gray-50;
+            }
+        }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body class="bg-slate-50 min-h-screen flex flex-col font-sans text-slate-800">
+
+    <!-- Navbar -->
+    <nav class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="{% url 'user_dashboard' %}" class="flex items-center gap-2 group">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-500 to-accent-500 flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:rotate-6 transition-transform">
+                            E
+                        </div>
+                        <span
+                            class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-accent-600">
+                            Emotion <span class="text-slate-700">AI</span>
+                        </span>
+                    </a>
+                </div>
+
+                <!-- Links -->
+                <div class="flex items-center gap-6">
+                    {% if user.is_authenticated %}
+                    {% if user.is_staff %}
+                    <a href="{% url 'admin_dashboard' %}"
+                        class="text-accent-600 hover:text-accent-700 font-bold transition-colors flex items-center gap-1 bg-accent-50 px-3 py-1 rounded-lg">
+                        🛡️ Admin
+                    </a>
+                    {% endif %}
+
+                    <a href="{% url 'user_dashboard' %}"
+                        class="text-slate-600 hover:text-brand-600 font-medium transition-colors">Dashboard</a>
+                    <a href="{% url 'user_sessions' %}"
+                        class="text-slate-600 hover:text-brand-600 font-medium transition-colors">History</a>
+
+                    <div class="h-6 w-px bg-gray-200 mx-2"></div>
+
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-slate-500 hidden md:block">Hi, {{
+                            user.first_name|default:user.username }}</span>
+                        <a href="{% url 'logout' %}"
+                            class="text-sm text-red-500 hover:text-red-600 font-medium transition-colors bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100">
+                            Logout
+                        </a>
+                    </div>
+                    {% else %}
+                    <a href="{% url 'login' %}" class="text-slate-600 hover:text-brand-600 font-medium">Login</a>
+                    <a href="{% url 'signup' %}" class="btn-primary py-1.5 px-4 text-sm">Sign Up</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+        {% if messages %}
+        <div class="mb-6 space-y-2 max-w-3xl mx-auto">
+            {% for message in messages %}
+            <div
+                class="p-4 rounded-xl shadow-sm border-l-4 flex items-center {% if message.tags == 'error' %}bg-red-50 border-red-500 text-red-700{% else %}bg-green-50 border-green-500 text-green-700{% endif %} animate-slide-up">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-100 py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-slate-400 text-sm">
+            <p>&copy; 2026 Emotion AI. All rights reserved.</p>
+        </div>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

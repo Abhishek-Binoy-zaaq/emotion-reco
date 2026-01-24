@@ -29,7 +29,8 @@ class ImagePreprocessor:
     """Handles image preprocessing before emotion detection"""
     
     # Face detection backends in order of preference
-    FACE_DETECTORS = ['opencv', 'ssd', 'retinaface', 'mtcnn']
+    # 'retinaface' is slowest but most accurate. 'ssd' is a good balance.
+    FACE_DETECTORS = ['retinaface', 'ssd', 'opencv', 'mtcnn']
     
     # Minimum face size (width, height) in pixels
     MIN_FACE_SIZE = (48, 48)
@@ -163,40 +164,40 @@ class ImagePreprocessor:
             'backend_used': None
         }
         
-        # Try OpenCV Haar Cascade first (fastest)
-        try:
-            face_cascade = cv2.CascadeClassifier(
-                cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
-            )
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            faces = face_cascade.detectMultiScale(
-                gray, 
-                scaleFactor=1.1, 
-                minNeighbors=5, 
-                minSize=ImagePreprocessor.MIN_FACE_SIZE
-            )
-            
-            if len(faces) > 0:
-                # Get the largest face
-                largest_face = max(faces, key=lambda f: f[2] * f[3])
-                x, y, w, h = largest_face
-                
-                result['face_detected'] = True
-                result['coordinates'] = {
-                    'x': int(x),
-                    'y': int(y),
-                    'width': int(w),
-                    'height': int(h)
-                }
-                result['backend_used'] = 'opencv_haar'
-                
-                print(f"[OK] Face detected with OpenCV Haar Cascade", flush=True)
-                sys.stdout.flush()
-                return result
-        
-        except Exception as e:
-            print(f"OpenCV Haar Cascade failed: {e}", flush=True)
-            sys.stdout.flush()
+        # Try OpenCV Haar Cascade first (fastest) - DISABLED to force better detectors
+        # try:
+        #     face_cascade = cv2.CascadeClassifier(
+        #         cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+        #     )
+        #     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        #     faces = face_cascade.detectMultiScale(
+        #         gray, 
+        #         scaleFactor=1.1, 
+        #         minNeighbors=5, 
+        #         minSize=ImagePreprocessor.MIN_FACE_SIZE
+        #     )
+        #     
+        #     if len(faces) > 0:
+        #         # Get the largest face
+        #         largest_face = max(faces, key=lambda f: f[2] * f[3])
+        #         x, y, w, h = largest_face
+        #         
+        #         result['face_detected'] = True
+        #         result['coordinates'] = {
+        #             'x': int(x),
+        #             'y': int(y),
+        #             'width': int(w),
+        #             'height': int(h)
+        #         }
+        #         result['backend_used'] = 'opencv_haar'
+        #         
+        #         print(f"[OK] Face detected with OpenCV Haar Cascade", flush=True)
+        #         sys.stdout.flush()
+        #         return result
+        # 
+        # except Exception as e:
+        #     print(f"OpenCV Haar Cascade failed: {e}", flush=True)
+        #     sys.stdout.flush()
         
         # Try DeepFace backends if OpenCV fails
         for backend in ImagePreprocessor.FACE_DETECTORS:
@@ -597,18 +598,17 @@ class EnhancedEmotionDetectionService:
                 return {'success': False, 'error': 'Model not loaded'}
 
             # Prepare image for model
-            # 1. Convert BGR to RGB
-            rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            # 1. Convert BGR to Grayscale
+            gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             
             # 2. Convert to PIL
-            pil_image = Image.fromarray(rgb_image)
+            pil_image = Image.fromarray(gray_image)
             
-            # 3. Apply transforms (Resize 224x224, Normalize)
+            # 3. Apply transforms (Resize 48x48, Normalize)
             transform = transforms.Compose([
-                transforms.Resize((224, 224)),
+                transforms.Resize((48, 48)),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-                                   std=[0.229, 0.224, 0.225])
+                transforms.Normalize(mean=[0.5], std=[0.5])
             ])
             
             input_tensor = transform(pil_image).unsqueeze(0) # Add batch dimension

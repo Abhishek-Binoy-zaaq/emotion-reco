@@ -87,32 +87,52 @@ class SessionReport(models.Model):
         return f"Report {self.id} - {self.user.username} - {self.video.title if self.video else 'Unknown'}"
     
     def get_emotion_summary(self):
-        """Calculate emotion statistics for this session"""
-        captures = self.captures.all()
-        if not captures:
-            return {}
+        """Calculate emotion statistics for this session using direct relation"""
+        # 1. Try to use cached report data first (most accurate and performant)
+        if self.report_data:
+            stats = self.report_data.get('emotion_stats', {})
+            # Transform to expected format
+            counts = {k: v.get('count', 0) for k, v in stats.items()}
+            percentages = {k: v.get('percentage', 0) for k, v in stats.items()}
+            dominant = self.report_data.get('dominant_emotion')
+            total = self.report_data.get('total_captures', 0)
+            
+            return {
+                'counts': counts,
+                'percentages': percentages,
+                'total_captures': total,
+                'dominant_emotion': dominant
+            }
+
+        # 2. Fallback to direct relation
+        preprocessed = self.preprocessed_images.all()
+        total_captures = preprocessed.count()
+        
+        if total_captures == 0:
+            return {
+                'counts': {},
+                'percentages': {},
+                'total_captures': 0,
+                'dominant_emotion': None
+            }
         
         emotion_counts = {}
-        total_captures = 0
+        for img in preprocessed:
+            expression = img.expression
+            if expression and expression not in ['error', 'no_face_detected']:
+                emotion_counts[expression] = emotion_counts.get(expression, 0) + 1
         
-        for capture in captures:
-            # Check if capture has been preprocessed
-            if hasattr(capture, 'preprocessed_version'):
-                expression = capture.preprocessed_version.expression
-                if expression and expression not in ['error', 'no_face_detected']:
-                    emotion_counts[expression] = emotion_counts.get(expression, 0) + 1
-                    total_captures += 1
+        valid_captures = sum(emotion_counts.values())
         
-        # Calculate percentages
         emotion_percentages = {
-            emotion: (count / total_captures * 100) if total_captures > 0 else 0
+            emotion: round((count / valid_captures * 100), 2) if valid_captures > 0 else 0
             for emotion, count in emotion_counts.items()
         }
         
         return {
             'counts': emotion_counts,
             'percentages': emotion_percentages,
-            'total_captures': total_captures,
+            'total_captures': valid_captures,
             'dominant_emotion': max(emotion_counts.items(), key=lambda x: x[1])[0] if emotion_counts else None
         }
     

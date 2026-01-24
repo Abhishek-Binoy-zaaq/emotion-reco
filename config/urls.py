@@ -54,6 +54,7 @@ urlpatterns = [
     path("my-sessions/", views.user_sessions, name="user_sessions"),
     path("session/<int:video_id>/", views.user_session, name="user_session"),
     path("report/<int:session_id>/", views.user_report, name="user_report"),
+    path("report/<int:session_id>/pdf/", views.download_session_pdf, name="download_session_pdf"),
     
     # API
     path("api/", include(router.urls)),

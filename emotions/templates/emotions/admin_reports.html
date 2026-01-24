@@ -1,236 +1,246 @@
+{% extends 'emotions/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aggregate Reports</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/static/emotions/css/admin-common.css">
-    <style>
-        .chart-container {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
-            height: 400px;
-        }
+{% block title %}Reports & Analytics | Emotion AI{% endblock %}
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
+{% block extra_head %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
 
-        .stat-card {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div>
+        <h1 class="text-3xl font-bold text-slate-800">System Analytics</h1>
+        <p class="text-slate-500">Aggregate insights and performance metrics</p>
+    </div>
 
-        .stat-value {
-            font-size: 3em;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .stat-label {
-            color: #666;
-            margin-top: 10px;
-        }
-    </style>
-</head>
-
-<body>
-    <div class="navbar">
-        <h1>📈 Aggregate Reports</h1>
-        <div class="navbar-right">
-            <a href="{% url 'admin_dashboard' %}">Dashboard</a>
-            <a href="{% url 'logout' %}">Logout</a>
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-100 text-center">
+            <div id="totalSessions" class="text-3xl font-bold text-brand-600 mb-1">0</div>
+            <div class="text-xs text-slate-500 uppercase font-medium tracking-wide">Total Sessions</div>
+        </div>
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-100 text-center">
+            <div id="totalCaptures" class="text-3xl font-bold text-accent-600 mb-1">0</div>
+            <div class="text-xs text-slate-500 uppercase font-medium tracking-wide">Captures Analyzed</div>
+        </div>
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-100 text-center">
+            <div id="totalUsers" class="text-3xl font-bold text-emerald-600 mb-1">0</div>
+            <div class="text-xs text-slate-500 uppercase font-medium tracking-wide">Active Users</div>
+        </div>
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-100 text-center">
+            <div id="totalVideos" class="text-3xl font-bold text-amber-600 mb-1">0</div>
+            <div class="text-xs text-slate-500 uppercase font-medium tracking-wide">Video Library</div>
         </div>
     </div>
 
-    <div class="container">
-        <h2>Overall Statistics</h2>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value" id="totalSessions">0</div>
-                <div class="stat-label">Total Sessions</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="totalCaptures">0</div>
-                <div class="stat-label">Total Captures</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="totalUsers">0</div>
-                <div class="stat-label">Active Users</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="totalVideos">0</div>
-                <div class="stat-label">Videos</div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Emotion Distribution Chart -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h2 class="font-bold text-lg text-slate-700 mb-6 flex items-center gap-2">
+                <span>🎭</span> Emotion Distribution
+            </h2>
+            <div class="relative h-64 w-full">
+                <canvas id="emotionChart"></canvas>
             </div>
         </div>
 
-        <h2>Emotion Distribution</h2>
-        <div class="chart-container">
-            <canvas id="emotionChart"></canvas>
-        </div>
-
-        <h2>Top Videos</h2>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Video</th>
-                        <th>Sessions</th>
-                        <th>Avg Engagement</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="topVideos"></tbody>
-            </table>
-        </div>
-
-        <h2>All Sessions</h2>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>User</th>
-                        <th>Video</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th>Captures</th>
-                        <th>Dominant Emotion</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="allSessions"></tbody>
-            </table>
+        <!-- Top Videos -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 overflow-hidden flex flex-col">
+            <h2 class="font-bold text-lg text-slate-700 mb-6 flex items-center gap-2">
+                <span>🏆</span> Most Popular Videos
+            </h2>
+            <div class="overflow-x-auto flex-1">
+                <table class="w-full text-left text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-500 border-b border-gray-100">
+                            <th class="px-4 py-3 font-medium">Video</th>
+                            <th class="px-4 py-3 font-medium text-center">Sessions</th>
+                            <th class="px-4 py-3 font-medium text-right">Engagement</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topVideos" class="divide-y divide-gray-100">
+                        <!-- Content -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <script>
-        let emotionChart = null;
+    <!-- All Sessions List -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100">
+            <h2 class="font-bold text-lg text-slate-700 flex items-center gap-2">
+                <span>📑</span> Recent Sessions
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 text-xs uppercase text-gray-500 font-semibold border-b border-gray-100">
+                        <th class="px-6 py-4">ID</th>
+                        <th class="px-6 py-4">User</th>
+                        <th class="px-6 py-4">Video</th>
+                        <th class="px-6 py-4">Date</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4 text-center">Captures</th>
+                        <th class="px-6 py-4 text-center">Dominant</th>
+                        <th class="px-6 py-4 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="allSessions" class="divide-y divide-gray-100">
+                    <!-- Data -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-        async function loadReport() {
-            try {
-                const response = await fetch('/api/sessions/aggregate_report/');
-                const data = await response.json();
+{% block scripts %}
+<script>
+    let emotionChart = null;
 
-                document.getElementById('totalSessions').textContent = data.total_sessions;
-                document.getElementById('totalCaptures').textContent = data.total_captures;
-                document.getElementById('totalUsers').textContent = data.total_users;
-                document.getElementById('totalVideos').textContent = data.total_videos;
+    async function loadReport() {
+        try {
+            const response = await fetch('/api/sessions/aggregate_report/');
+            const data = await response.json();
 
-                createEmotionChart(data.emotion_distribution);
-                displayTopVideos(data.popular_videos);
-            } catch (error) {
-                console.error('Error loading report:', error);
-            }
+            const animateValue = (id, val) => {
+                document.getElementById(id).textContent = val ?? 0;
+            };
+
+            animateValue('totalSessions', data.total_sessions);
+            animateValue('totalCaptures', data.total_captures);
+            animateValue('totalUsers', data.total_users);
+            animateValue('totalVideos', data.total_videos);
+
+            createEmotionChart(data.emotion_distribution);
+            displayTopVideos(data.popular_videos);
+        } catch (error) {
+            console.error('Error loading report:', error);
         }
+    }
 
-        function createEmotionChart(emotionData) {
-            const ctx = document.getElementById('emotionChart').getContext('2d');
+    function createEmotionChart(emotionData) {
+        const ctx = document.getElementById('emotionChart').getContext('2d');
+        const labels = Object.keys(emotionData);
+        const data = Object.values(emotionData);
+        const colors = labels.map(e => getEmotionColor(e));
 
-            const labels = Object.keys(emotionData);
-            const data = Object.values(emotionData);
-            const colors = labels.map(e => getEmotionColor(e));
+        if (emotionChart) emotionChart.destroy();
 
-            if (emotionChart) emotionChart.destroy();
-
-            emotionChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
-                    datasets: [{
-                        data: data,
-                        backgroundColor: colors,
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right'
+        emotionChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            usePointStyle: true,
+                            font: { family: "'Outfit', sans-serif" }
                         }
                     }
+                },
+                layout: {
+                    padding: 20
                 }
-            });
-        }
-
-        function displayTopVideos(videos) {
-            const tbody = document.getElementById('topVideos');
-            tbody.innerHTML = videos.map(v => `
-                <tr>
-                    <td>${v.title}</td>
-                    <td>${v.sessions}</td>
-                    <td>${v.engagement}%</td>
-                    <td><button class="btn" onclick="viewVideoReport(${v.id})">📊 View Details</button></td>
-                </tr>
-            `).join('');
-        }
-
-        async function loadAllSessions() {
-            try {
-                const response = await fetch('/api/sessions/');
-                const data = await response.json();
-                const sessions = data.results || data;
-
-                const tbody = document.getElementById('allSessions');
-                if (!sessions || sessions.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No sessions found</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = sessions.map(s => {
-                    const summary = s.emotion_summary || {};
-                    return `
-                        <tr>
-                            <td>${s.session_id}</td>
-                            <td>${s.user_name || 'Unknown'}</td>
-                            <td>${s.video_title || 'Unknown'}</td>
-                            <td>${new Date(s.started_at).toLocaleDateString()}</td>
-                            <td><span style="color: ${s.is_completed ? '#28a745' : '#ffc107'}">${s.is_completed ? '✓ Completed' : '⏸ Incomplete'}</span></td>
-                            <td>${summary.total_captures || 0}</td>
-                            <td>${summary.dominant_emotion || 'N/A'}</td>
-                            <td><button class="btn" onclick="viewSessionReport(${s.session_id})">📊 View</button></td>
-                        </tr>
-                    `;
-                }).join('');
-            } catch (error) {
-                console.error('Error loading sessions:', error);
             }
+        });
+    }
+
+    function displayTopVideos(videos) {
+        const tbody = document.getElementById('topVideos');
+        if (!videos || videos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-6 text-center text-gray-400">No data available</td></tr>';
+            return;
         }
 
-        function viewSessionReport(sessionId) {
-            window.open(`/admin/session-report/${sessionId}/`, '_blank');
+        tbody.innerHTML = videos.map(v => `
+            <tr class="hover:bg-gray-50">
+                <td class="px-4 py-3 font-medium text-slate-700">${v.title}</td>
+                <td class="px-4 py-3 text-center text-slate-600">${v.sessions}</td>
+                <td class="px-4 py-3 text-right">
+                    <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-bold">${v.engagement}%</span>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function loadAllSessions() {
+        try {
+            const response = await fetch('/api/sessions/');
+            const data = await response.json();
+            const sessions = data.results || data;
+
+            const tbody = document.getElementById('allSessions');
+            if (!sessions || sessions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500">No sessions recorded yet</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = sessions.map(s => {
+                const summary = s.emotion_summary || {};
+                const date = new Date(s.started_at).toLocaleDateString();
+
+                return `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 font-mono text-xs text-slate-500">#${s.session_id}</td>
+                        <td class="px-6 py-4 font-medium text-slate-800">${s.user_name || 'Unknown'}</td>
+                        <td class="px-6 py-4 text-slate-600">${s.video_title || 'Unknown'}</td>
+                        <td class="px-6 py-4 text-slate-500">${date}</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${s.is_completed ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}">
+                                ${s.is_completed ? 'Completed' : 'In Progress'}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center font-medium">${summary.total_captures || 0}</td>
+                        <td class="px-6 py-4 text-center capitalize">
+                            ${summary.dominant_emotion ?
+                        `<span class="px-2 py-1 bg-slate-100 rounded text-xs text-slate-700 font-medium">${summary.dominant_emotion}</span>`
+                        : '-'}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <button class="text-brand-600 hover:text-brand-800 font-medium text-sm hover:underline" 
+                                onclick="viewSessionReport(${s.session_id})">
+                                View Admin Report
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error loading sessions:', error);
         }
+    }
 
-        function viewVideoReport(videoId) {
-            window.open(`/admin/video-report/${videoId}/`, '_blank');
-        }
+    function viewSessionReport(sessionId) {
+        window.open(`/admin/session-report/${sessionId}/`, '_blank');
+    }
 
-        function getEmotionColor(emotion) {
-            const colors = {
-                'happy': '#FFD700', 'sad': '#4169E1', 'angry': '#DC143C',
-                'surprise': '#FF69B4', 'fear': '#9370DB', 'disgust': '#32CD32', 'neutral': '#A9A9A9'
-            };
-            return colors[emotion] || '#667eea';
-        }
+    function getEmotionColor(emotion) {
+        const colors = {
+            'happy': '#FFD700', 'sad': '#3B82F6', 'angry': '#EF4444',
+            'surprise': '#EC4899', 'fear': '#8B5CF6', 'disgust': '#10B981', 'neutral': '#9CA3AF'
+        };
+        return colors[emotion] || '#94a3b8';
+    }
 
-        loadReport();
-        loadAllSessions();
-    </script>
-</body>
-
-</html>
+    loadReport();
+    loadAllSessions();
+</script>
+{% endblock %}

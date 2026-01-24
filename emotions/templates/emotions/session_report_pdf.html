@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+
+            @frame footer_frame {
+                /* Another static Frame */
+                -pdf-frame-content: footerContent;
+                bottom: 1cm;
+                margin-left: 2cm;
+                margin-right: 2cm;
+                height: 1cm;
+            }
+        }
+
+        body {
+            font-family: Helvetica, sans-serif;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .header h1 {
+            color: #667eea;
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .meta-info {
+            margin-bottom: 30px;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .meta-row {
+            margin-bottom: 5px;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #555;
+            display: inline-block;
+            width: 120px;
+        }
+
+        .section-title {
+            color: #667eea;
+            font-size: 18px;
+            border-bottom: 1px solid #ddd;
+            margin-top: 20px;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+        }
+
+        .stats-grid {
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            display: inline-block;
+            width: 30%;
+            text-align: center;
+            background: #f0f4ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-right: 2%;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #666;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .footer {
+            text-align: center;
+            color: #888;
+            font-size: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Session Analysis Report</h1>
+    </div>
+
+    <div class="meta-info">
+        <div class="meta-row">
+            <span class="label">User:</span> {{ user.get_full_name|default:user.username }}
+        </div>
+        <div class="meta-row">
+            <span class="label">Video:</span> {{ session.video.title }}
+        </div>
+        <div class="meta-row">
+            <span class="label">Date:</span> {{ session.started_at|date:"F j, Y, H:i" }}
+        </div>
+        <div class="meta-row">
+            <span class="label">Duration:</span> {{ report.duration_seconds|floatformat:0 }} seconds
+        </div>
+    </div>
+
+    <div class="section-title">Summary Statistics</div>
+
+    <div class="stats-grid">
+        <div class="stat-box">
+            <div class="stat-value">{{ report.total_captures }}</div>
+            <div class="stat-label">Total Captures</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value">{{ report.dominant_emotion|title }}</div>
+            <div class="stat-label">Dominant Emotion</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value">{{ report.engagement_score|floatformat:1 }}%</div>
+            <div class="stat-label">Engagement</div>
+        </div>
+    </div>
+
+    <div class="section-title">Emotion Breakdown</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Emotion</th>
+                <th>Count</th>
+                <th>Percentage</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for emotion, stats in report.emotion_stats.items %}
+            <tr>
+                <td>{{ emotion|title }}</td>
+                <td>{{ stats.count }}</td>
+                <td>{{ stats.percentage|floatformat:1 }}%</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3" style="text-align: center;">No emotion data available</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div id="footerContent">
+        <div class="footer">
+            Generated on {{ generation_date|date:"F j, Y, H:i" }} | Emotion Recognition System
+        </div>
+    </div>
+</body>
+
+</html>
