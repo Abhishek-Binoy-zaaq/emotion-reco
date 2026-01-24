@@ -1,87 +1,118 @@
+{% extends 'emotions/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Videos</title>
-    <link rel="stylesheet" href="/static/emotions/css/themes.css">
-    <link rel="stylesheet" href="/static/emotions/css/admin-common.css">
-</head>
+{% block title %}Manage Videos | Emotion AI{% endblock %}
 
-<body>
-    <div class="navbar">
-        <h1>🎬 Manage Videos</h1>
-        <div class="navbar-right">
-            <a href="{% url 'admin_dashboard' %}">Dashboard</a>
-            <a href="{% url 'logout' %}">Logout</a>
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-800">Video Library</h1>
+            <p class="text-slate-500">Manage your training and test videos</p>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="showCategoriesModal()" class="btn-secondary flex items-center gap-2">
+                <span>📁</span> Categories
+            </button>
+            <button onclick="showUploadModal()" class="btn-primary flex items-center gap-2">
+                <span>➕</span> Upload Video
+            </button>
         </div>
     </div>
 
-    <div class="container">
-        <div class="header-actions">
-            <h2>Video Library</h2>
-            <div>
-                <button class="btn" onclick="showCategoriesModal()" style="background: #6c757d; margin-right: 10px;">📁
-                    Manage Categories</button>
-                <button class="btn btn-primary" onclick="showUploadModal()">➕ Upload Video</button>
-            </div>
-        </div>
-
-        <div id="videosList" class="videos-grid"></div>
+    <!-- Video Grid -->
+    <div id="videosList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Videos injected via JS -->
     </div>
 
     <!-- Categories Modal -->
-    <div id="categoriesModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeCategoriesModal()">&times;</span>
-            <h2>Manage Categories</h2>
+    <div id="categoriesModal" class="fixed inset-0 z-50 hidden">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeCategoriesModal()"></div>
 
-            <div style="margin-bottom: 20px;">
-                <h3 style="margin-bottom: 10px;">Add New Category</h3>
-                <form id="categoryForm" style="display: flex; gap: 10px;">
-                    <input type="text" id="categoryName" placeholder="Category Name" required
-                        style="flex: 1; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px;">
-                    <button type="submit" class="btn btn-primary">Add</button>
-                </form>
+        <!-- Content -->
+        <div class="relative min-h-screen flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-up">
+                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h2 class="font-bold text-lg text-slate-700">Manage Categories</h2>
+                    <button onclick="closeCategoriesModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+
+                <div class="p-6 space-y-6">
+                    <!-- Add New -->
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-slate-700">Add New Category</label>
+                        <form id="categoryForm" class="flex gap-2">
+                            <input type="text" id="categoryName" placeholder="e.g. Interviews" required
+                                class="flex-1 rounded-xl border-gray-300 focus:border-brand-500 focus:ring-brand-500">
+                            <button type="submit" class="btn-primary py-2 px-4 whitespace-nowrap">Add</button>
+                        </form>
+                    </div>
+
+                    <!-- List -->
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-slate-700">Existing Categories</label>
+                        <div id="categoriesList" class="max-h-60 overflow-y-auto space-y-2 pr-1">
+                            <!-- Categories injected via JS -->
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            <h3 style="margin-bottom: 10px;">Existing Categories</h3>
-            <div id="categoriesList" style="max-height: 300px; overflow-y: auto;"></div>
         </div>
     </div>
 
     <!-- Upload/Edit Modal -->
-    <div id="uploadModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeUploadModal()">&times;</span>
-            <h2 id="modalTitle">Upload New Video</h2>
-            <form id="uploadForm" enctype="multipart/form-data">
-                <div class="form-group">
-                    <label>Title</label>
-                    <input type="text" id="title" required>
+    <div id="uploadModal" class="fixed inset-0 z-50 hidden">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeUploadModal()"></div>
+
+        <!-- Content -->
+        <div class="relative min-h-screen flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-slide-up">
+                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h2 id="modalTitle" class="font-bold text-lg text-slate-700">Upload New Video</h2>
+                    <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
                 </div>
-                <div class="form-group">
-                    <label>Category</label>
-                    <select id="category">
-                        <option value="">No Category</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea id="description" rows="3"></textarea>
-                </div>
-                <div class="form-group" id="videoFileGroup">
-                    <label>Video File</label>
-                    <input type="file" id="videoFile" accept="video/*">
-                </div>
-                <button type="submit" class="btn btn-primary">Save</button>
-            </form>
+
+                <form id="uploadForm" enctype="multipart/form-data" class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Title</label>
+                        <input type="text" id="title" required
+                            class="w-full rounded-xl border-gray-300 focus:border-brand-500 focus:ring-brand-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Category</label>
+                        <select id="category"
+                            class="w-full rounded-xl border-gray-300 focus:border-brand-500 focus:ring-brand-500">
+                            <option value="">No Category</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                        <textarea id="description" rows="3"
+                            class="w-full rounded-xl border-gray-300 focus:border-brand-500 focus:ring-brand-500"></textarea>
+                    </div>
+
+                    <div id="videoFileGroup">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Video File</label>
+                        <input type="file" id="videoFile" accept="video/*"
+                            class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100">
+                    </div>
+
+                    <div class="pt-4 flex justify-end gap-3">
+                        <button type="button" onclick="closeUploadModal()" class="btn-secondary">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Video</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <script src="/static/emotions/js/admin-videos.js?v=2"></script>
-</body>
-
-</html>
+{% block scripts %}
+<script src="{% static 'emotions/js/admin-videos.js' %}?v=3"></script>
+{% endblock %}

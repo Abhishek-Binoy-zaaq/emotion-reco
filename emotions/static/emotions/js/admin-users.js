@@ -6,12 +6,12 @@ async function loadUsers() {
         const response = await fetch('/api/users/');
         const data = await response.json();
         allUsers = data.results || data;
-        
+
         updateStats();
         renderUsers(allUsers);
     } catch (error) {
         console.error('Error loading users:', error);
-        document.getElementById('usersBody').innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">⚠️</div><div>Error loading users. Please refresh the page.</div></td></tr>';
+        document.getElementById('usersBody').innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Error loading users. Please refresh.</td></tr>';
     }
 }
 
@@ -19,58 +19,83 @@ function updateStats() {
     const total = allUsers.length;
     const active = allUsers.filter(u => u.is_active).length;
     const inactive = total - active;
-    
-    document.getElementById('totalUsers').textContent = total;
-    document.getElementById('activeUsers').textContent = active;
-    document.getElementById('inactiveUsers').textContent = inactive;
+
+    const animateValue = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+
+    animateValue('totalUsers', total);
+    animateValue('activeUsers', active);
+    animateValue('inactiveUsers', inactive);
 }
 
 function renderUsers(users) {
     const tbody = document.getElementById('usersBody');
-    
+
     if (!users || users.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" class="empty-state">
-                    <div class="empty-state-icon">👥</div>
-                    <div style="font-size: 1.2em; margin-bottom: 10px;">No users found</div>
-                    <div>Click "Create User" to add your first user</div>
+                <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+                    <div class="text-4xl mb-4">👥</div>
+                    <div class="text-lg font-medium">No users found</div>
+                    <p class="text-sm mt-1">Click "Create User" to add one.</p>
                 </td>
             </tr>
         `;
         return;
     }
-    
+
     tbody.innerHTML = users.map(user => {
-        const fullName = [user.first_name, user.last_name].filter(n => n).join(' ') || '-';
-        
+        const fullName = [user.first_name, user.last_name].filter(n => n).join(' ') || '<span class="text-gray-400 italic">Not set</span>';
+        const joined = new Date(user.date_joined).toLocaleDateString();
+
         return `
-            <tr>
-                <td><strong>#${user.id}</strong></td>
-                <td>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 1.5em;">👤</span>
-                        <strong>${escapeHtml(user.username)}</strong>
+            <tr class="hover:bg-gray-50 transition-colors group">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="h-10 w-10 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-lg mr-3">
+                            ${user.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div class="font-medium text-slate-900">${escapeHtml(user.username)}</div>
+                            <div class="text-xs text-slate-500">${escapeHtml(user.email || 'No email')}</div>
+                        </div>
                     </div>
                 </td>
-                <td>${escapeHtml(user.email) || '<span style="color: var(--text-light);">No email</span>'}</td>
-                <td>${escapeHtml(fullName)}</td>
-                <td>
-                    <span class="status-badge ${user.is_active ? 'status-active' : 'status-inactive'}">
-                        ${user.is_active ? '✓ Active' : '✗ Inactive'}
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                        ${user.is_active ? 'Active' : 'Inactive'}
                     </span>
                 </td>
-                <td><span style="color: var(--text-secondary);">-</span></td>
-                <td class="actions-column">
-                    <div class="action-buttons">
-                        <button class="btn btn-primary btn-action" onclick="editUser(${user.id}, '${escapeHtml(user.username)}', '${escapeHtml(user.email || '')}', '${escapeHtml(user.first_name || '')}', '${escapeHtml(user.last_name || '')}', ${user.is_active})">
-                            ✏️ Edit
+                <td class="px-6 py-4 whitespace-nowrap text-slate-500">
+                    ${joined}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-center text-slate-500 font-medium">
+                    ${user.session_count || '-'}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div class="flex justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button class="text-brand-600 hover:text-brand-900 bg-brand-50 hover:bg-brand-100 p-2 rounded-lg transition-colors" 
+                            onclick="editUser(${user.id}, '${escapeHtml(user.username)}', '${escapeHtml(user.email || '')}', '${escapeHtml(user.first_name || '')}', '${escapeHtml(user.last_name || '')}', ${user.is_active})" title="Edit">
+                            ✏️
                         </button>
-                        ${user.is_active ? 
-                            `<button class="btn btn-disable btn-action" onclick="toggleUserStatus(${user.id}, false, '${escapeHtml(user.username)}')">🔒 Disable</button>` :
-                            `<button class="btn btn-enable btn-action" onclick="toggleUserStatus(${user.id}, true, '${escapeHtml(user.username)}')">🔓 Enable</button>`
-                        }
-                        <button class="btn btn-danger btn-action" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')">🗑️ Delete</button>
+                        
+                        ${user.is_active ?
+                `<button class="text-amber-600 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 p-2 rounded-lg transition-colors" 
+                                onclick="toggleUserStatus(${user.id}, false, '${escapeHtml(user.username)}')" title="Disable Account">
+                                🔒
+                            </button>` :
+                `<button class="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 p-2 rounded-lg transition-colors" 
+                                onclick="toggleUserStatus(${user.id}, true, '${escapeHtml(user.username)}')" title="Enable Account">
+                                🔓
+                            </button>`
+            }
+                        
+                        <button class="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-colors" 
+                            onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')" title="Delete">
+                            🗑️
+                        </button>
                     </div>
                 </td>
             </tr>
@@ -79,55 +104,71 @@ function renderUsers(users) {
 }
 
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML.replace(/'/g, "\\'");
 }
 
+// Modal Logic
+function toggleModal(show) {
+    const modal = document.getElementById('userModal');
+    if (show) {
+        modal.classList.remove('hidden');
+    } else {
+        modal.classList.add('hidden');
+        editingUserId = null;
+    }
+}
+
 function showCreateModal() {
-    document.getElementById('userModal').style.display = 'block';
+    toggleModal(true);
     document.getElementById('modalTitle').textContent = 'Create New User';
     document.getElementById('userForm').reset();
-    document.getElementById('passwordGroup').style.display = 'block';
+    document.getElementById('passwordGroup').classList.remove('hidden');
     document.getElementById('password').required = true;
     editingUserId = null;
 }
 
 function editUser(id, username, email, firstName, lastName, isActive) {
-    document.getElementById('userModal').style.display = 'block';
+    toggleModal(true);
     document.getElementById('modalTitle').textContent = 'Edit User';
     document.getElementById('username').value = username;
     document.getElementById('email').value = email;
     document.getElementById('firstName').value = firstName;
     document.getElementById('lastName').value = lastName;
-    document.getElementById('passwordGroup').style.display = 'none';
+    document.getElementById('passwordGroup').classList.add('hidden');
     document.getElementById('password').required = false;
     editingUserId = id;
 }
 
 function closeUserModal() {
-    document.getElementById('userModal').style.display = 'none';
-    editingUserId = null;
+    toggleModal(false);
 }
 
 document.getElementById('userForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Saving...';
+    submitBtn.disabled = true;
+
     const userData = {
         username: document.getElementById('username').value,
         email: document.getElementById('email').value,
         first_name: document.getElementById('firstName').value,
         last_name: document.getElementById('lastName').value
     };
-    
+
     if (!editingUserId) {
         userData.password = document.getElementById('password').value;
     }
-    
+
     try {
         const url = editingUserId ? `/api/users/${editingUserId}/` : '/api/users/';
         const method = editingUserId ? 'PATCH' : 'POST';
-        
+
         const response = await fetch(url, {
             method: method,
             headers: {
@@ -136,16 +177,19 @@ document.getElementById('userForm').addEventListener('submit', async (e) => {
             },
             body: JSON.stringify(userData)
         });
-        
+
         if (response.ok) {
             closeUserModal();
             loadUsers();
         } else {
-            const error = await response.json();
-            console.error('Error:', error);
+            alert('Failed to save user');
         }
     } catch (error) {
         console.error('Error:', error.message);
+        alert('Error: ' + error.message);
+    } finally {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
     }
 });
 
@@ -159,36 +203,22 @@ async function toggleUserStatus(userId, newStatus, username) {
             },
             body: JSON.stringify({ is_active: newStatus })
         });
-        
-        if (response.ok) {
-            loadUsers(); // Refresh the user list immediately
-        } else {
-            console.error('Error updating user status');
-        }
-    } catch (error) {
-        console.error('Error:', error.message);
-    }
+
+        if (response.ok) loadUsers();
+    } catch (error) { console.error(error); }
 }
 
 async function deleteUser(userId, username) {
-    if (!confirm(`Are you sure you want to delete user "${username}"?\n\nThis will also delete all their sessions and data.`)) return;
-    
+    if (!confirm(`Delete user "${username}"?\nThis cannot be undone.`)) return;
+
     try {
         const response = await fetch(`/api/users/${userId}/`, {
             method: 'DELETE',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken')
-            }
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
         });
-        
-        if (response.ok) {
-            loadUsers(); // Refresh the user list immediately
-        } else {
-            console.error('Error deleting user');
-        }
-    } catch (error) {
-        console.error('Error:', error.message);
-    }
+
+        if (response.ok) loadUsers();
+    } catch (error) { console.error(error); }
 }
 
 function getCookie(name) {
@@ -206,30 +236,21 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// Initialize when DOM is ready
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    // Search functionality
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            
-            if (!searchTerm) {
-                renderUsers(allUsers);
-                return;
-            }
-            
-            const filtered = allUsers.filter(user => {
-                const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
-                return user.username.toLowerCase().includes(searchTerm) ||
-                       (user.email && user.email.toLowerCase().includes(searchTerm)) ||
-                       fullName.includes(searchTerm);
-            });
-            
+            const term = e.target.value.toLowerCase();
+            if (!term) { renderUsers(allUsers); return; }
+
+            const filtered = allUsers.filter(u =>
+                u.username.toLowerCase().includes(term) ||
+                (u.email && u.email.toLowerCase().includes(term)) ||
+                `${u.first_name} ${u.last_name}`.toLowerCase().includes(term)
+            );
             renderUsers(filtered);
         });
     }
-    
-    // Load users
     loadUsers();
 });

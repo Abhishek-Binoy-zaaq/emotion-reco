@@ -2,6 +2,9 @@ from django.contrib.auth.models import Group, User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils import timezone
 from django.db.models import Count, Avg
@@ -18,7 +21,8 @@ from .serializers import (
     SessionReportSerializer, SessionReportCreateSerializer, 
     CapturedFrameSerializer, VideoSerializer, VideoCategorySerializer
 )
-from .services import EmotionDetectionService, SessionAnalyticsService
+from .services import SessionAnalyticsService
+from .image_preprocessing import EnhancedEmotionDetectionService
 
 
 # Helper functions
@@ -193,6 +197,45 @@ def user_session(request, video_id):
 def user_report(request, session_id):
     """User session report"""
     return render(request, 'emotions/user_report.html', {'session_id': session_id})
+
+
+@login_required
+def download_session_pdf(request, session_id):
+    """Generate and download PDF report for a session"""
+    try:
+        session = SessionReport.objects.get(id=session_id)
+    except SessionReport.DoesNotExist:
+        return redirect('user_sessions')
+
+    # key must be valid
+    if not (request.user.is_staff or session.user == request.user):
+        return redirect('user_dashboard')
+
+    # Ensure report data is generated
+    if not session.report_data:
+        session.report_data = SessionAnalyticsService.generate_session_report(session)
+        session.save()
+    
+    context = {
+        'session': session,
+        'report': session.report_data,
+        'user': request.user,
+        'generation_date': timezone.now()
+    }
+    
+    template_path = 'emotions/session_report_pdf.html'
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="session_report_{session_id}.pdf"'
+    
+    template = get_template(template_path)
+    html = template.render(context)
+    
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    
+    if pisa_status.err:
+        return HttpResponse('We had some errors <pre>' + html + '</pre>')
+    
+    return response
 
 
 # API ViewSets
@@ -385,7 +428,7 @@ class CapturedFrameViewSet(viewsets.ModelViewSet):
         instance = serializer.save()
         
         # Analyze the captured frame (and save cropped face if found)
-        analysis_result = EmotionDetectionService.analyze_image(
+        analysis_result = EnhancedEmotionDetectionService.analyze_image_with_preprocessing(
             instance.image.path,
             save_preprocessed=True
         )
@@ -418,8 +461,23 @@ class CapturedFrameViewSet(viewsets.ModelViewSet):
                 except Exception as e:
                     print(f"[FAIL] Failed to save analysis results: {e}", flush=True)
         
-        # Return data including the preprocessed version (now available via serializer field)
-        return Response(self.get_serializer(instance).data, status=status.HTTP_201_CREATED)
+        # Custom response construction to flatten the structure for the frontend
+        # The frontend expects 'expression' and 'confidence' at the root level
+        
+        # Refresh instance to get the related preprocessed object we just created
+        instance.refresh_from_db()
+        
+        data = self.get_serializer(instance).data
+        
+        # Flatten preprocessed data if available
+        if hasattr(instance, 'preprocessed_version') and instance.preprocessed_version:
+            preprocessed = instance.preprocessed_version
+            data['expression'] = preprocessed.expression
+            data['expression_confidence'] = preprocessed.expression_confidence
+            data['all_expressions'] = preprocessed.all_expressions
+            data['preprocessed_path'] = preprocessed.image.url if preprocessed.image else None
+            
+        return Response(data, status=status.HTTP_201_CREATED)
 
 
 class UserViewSet(viewsets.ModelViewSet):

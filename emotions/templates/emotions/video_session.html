@@ -1,292 +1,174 @@
+{% extends 'emotions/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Emotion Analysis</title>
-    <link rel="stylesheet" href="/static/emotions/css/themes.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% block title %}Video Analysis | Emotion AI{% endblock %}
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-800">Video Emotion Analysis</h1>
+            <p class="text-slate-500">Real-time emotion tracking and mindfulness detection</p>
+        </div>
+        <div id="status" class="px-4 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium border border-blue-200">
+            Select a video file to begin
+        </div>
+    </div>
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        h1 {
-            color: white;
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .video-section,
-        .webcam-section,
-        .controls-section,
-        .stats-section {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .video-section {
-            grid-column: 1;
-        }
-
-        .webcam-section {
-            grid-column: 2;
-        }
-
-        .controls-section {
-            grid-column: 1 / -1;
-        }
-
-        h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-            font-size: 1.5em;
-        }
-
-        video {
-            width: 100%;
-            border-radius: 8px;
-            background: #000;
-        }
-
-        #webcam {
-            transform: scaleX(-1);
-        }
-
-        .btn {
-            padding: 15px 30px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-right: 10px;
-        }
-
-        .btn:hover:not(:disabled) {
-            background: #5568d3;
-            transform: translateY(-2px);
-        }
-
-        .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .btn-success {
-            background: #28a745;
-        }
-
-        .btn-success:hover:not(:disabled) {
-            background: #218838;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-        }
-
-        .btn-danger:hover:not(:disabled) {
-            background: #c82333;
-        }
-
-        .status {
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            font-weight: 500;
-        }
-
-        .status.info {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .status.success {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status.warning {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 2em;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            font-size: 0.9em;
-            opacity: 0.9;
-        }
-
-        .emotion-indicator {
-            display: inline-block;
-            padding: 8px 16px;
-            border-radius: 20px;
-            background: #667eea;
-            color: white;
-            font-weight: 500;
-            margin: 5px;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        canvas {
-            display: none;
-        }
-
-        .file-input-wrapper {
-            position: relative;
-            display: inline-block;
-            margin-bottom: 20px;
-        }
-
-        .file-input-wrapper input[type="file"] {
-            display: none;
-        }
-
-        .file-input-label {
-            padding: 15px 30px;
-            background: #667eea;
-            color: white;
-            border-radius: 8px;
-            cursor: pointer;
-            display: inline-block;
-            transition: all 0.3s;
-        }
-
-        .file-input-label:hover {
-            background: #5568d3;
-        }
-
-        .video-info {
-            margin: 15px 0;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        @media (max-width: 1024px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-
-            .video-section,
-            .webcam-section {
-                grid-column: 1;
-            }
-        }
-    </style>
-</head>
-
-<body>
-    <div class="container">
-        <h1>🎬 Video Emotion Analysis System</h1>
-
-        <div class="main-content">
-            <div class="video-section">
-                <h2>📹 Video Player</h2>
-                <div class="file-input-wrapper">
-                    <input type="file" id="videoFile" accept="video/*">
-                    <label for="videoFile" class="file-input-label">📁 Select Video File</label>
+        <!-- Video Player Section (2/3 width) -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+                <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <h2 class="font-bold text-lg text-slate-700 flex items-center gap-2">
+                        🎥 Source Video
+                    </h2>
+                    <!-- File Input Hidden -->
+                    <div class="file-input-wrapper">
+                        <input type="file" id="videoFile" accept="video/*" class="hidden">
+                        <label for="videoFile"
+                            class="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                            <span>📂</span> Select File
+                        </label>
+                    </div>
                 </div>
-                <div id="videoInfo" class="video-info hidden">
-                    <strong>Selected:</strong> <span id="videoName"></span><br>
-                    <strong>Duration:</strong> <span id="videoDuration"></span>
+
+                <div class="relative bg-black aspect-video flex items-center justify-center">
+                    <video id="videoPlayer" controls class="w-full h-full"></video>
+                    <!-- Placeholder when no video -->
+                    <div id="videoPlaceholder"
+                        class="absolute inset-0 flex flex-col items-center justify-center text-gray-500 pointer-events-none">
+                        <span class="text-6xl mb-4">🎬</span>
+                        <p>No video selected</p>
+                    </div>
                 </div>
-                <video id="videoPlayer" controls></video>
+
+                <div id="videoInfo" class="p-4 bg-brand-50 border-t border-brand-100 hidden">
+                    <div class="flex gap-6 text-sm text-brand-800">
+                        <span><strong>File:</strong> <span id="videoName"></span></span>
+                        <span><strong>Duration:</strong> <span id="videoDuration"></span></span>
+                    </div>
+                </div>
             </div>
 
-            <div class="webcam-section">
-                <h2>📷 Webcam Feed</h2>
-                <video id="webcam" autoplay playsinline></video>
-                <canvas id="canvas"></canvas>
-                <div id="currentEmotion" style="margin-top: 15px; text-align: center;">
-                    <div class="emotion-indicator">Waiting to start...</div>
+            <!-- Controls (Bottom) -->
+            <div
+                class="bg-white rounded-2xl p-6 shadow-lg border border-slate-100 flex flex-wrap gap-4 items-center justify-between">
+                <div class="flex gap-3">
+                    <button id="startBtn" class="btn-primary flex items-center gap-2 opacity-50 cursor-not-allowed"
+                        disabled>
+                        <span>▶️</span> Start Session
+                    </button>
+                    <button id="stopBtn"
+                        class="bg-red-50 text-red-600 border border-red-200 font-medium py-2 px-6 rounded-xl hover:bg-red-100 opacity-50 cursor-not-allowed transition-all"
+                        disabled>
+                        <span>⏹️</span> Stop
+                    </button>
                 </div>
+                <button id="viewReportBtn" class="btn-secondary opacity-50 cursor-not-allowed" disabled>
+                    📊 View Report
+                </button>
             </div>
         </div>
 
-        <div class="controls-section">
-            <h2>🎮 Controls</h2>
-            <div id="status" class="status info">
-                Select a video file to begin
-            </div>
-            <div>
-                <button id="startBtn" class="btn btn-success" disabled>▶️ Start Session</button>
-                <button id="stopBtn" class="btn btn-danger" disabled>⏹️ Stop Session</button>
-                <button id="viewReportBtn" class="btn" disabled>📊 View Report</button>
+        <!-- Webcam & Stats (1/3 width) -->
+        <div class="space-y-6">
+            <!-- Webcam -->
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+                <div class="p-4 border-b border-gray-100 bg-gray-50/50">
+                    <h2 class="font-bold text-slate-700 flex items-center gap-2">
+                        📷 Your Camera
+                    </h2>
+                </div>
+                <div class="relative aspect-[4/3] bg-black">
+                    <video id="webcam" autoplay playsinline
+                        class="w-full h-full object-cover transform -scale-x-100"></video>
+                    <canvas id="canvas" class="hidden"></canvas>
+
+                    <!-- Detection Status Overlay -->
+                    <div class="absolute bottom-4 left-0 right-0 flex justify-center">
+                        <div id="currentEmotion"
+                            class="bg-black/60 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-sm font-medium border border-white/20">
+                            Waiting to start...
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="captureCount">0</div>
-                    <div class="stat-label">Captures</div>
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Stat Card -->
+                <div
+                    class="bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl p-4 text-white shadow-lg text-center">
+                    <div id="captureCount" class="text-3xl font-bold">0</div>
+                    <div class="text-brand-100 text-xs uppercase tracking-wider font-semibold mt-1">Captures</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="detectionRate">0%</div>
-                    <div class="stat-label">Detection Rate</div>
+                <!-- Stat Card -->
+                <div class="bg-white rounded-xl p-4 text-center border border-gray-100 shadow-md">
+                    <div id="detectionRate" class="text-3xl font-bold text-brand-600">0%</div>
+                    <div class="text-slate-400 text-xs uppercase tracking-wider font-semibold mt-1">Confidence</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="currentTime">0s</div>
-                    <div class="stat-label">Video Time</div>
+                <!-- Stat Card -->
+                <div class="bg-white rounded-xl p-4 text-center border border-gray-100 shadow-md">
+                    <div id="currentTime" class="text-3xl font-bold text-slate-700">0s</div>
+                    <div class="text-slate-400 text-xs uppercase tracking-wider font-semibold mt-1">Time</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="dominantEmotion">-</div>
-                    <div class="stat-label">Dominant Emotion</div>
+                <!-- Stat Card -->
+                <div
+                    class="bg-gradient-to-br from-accent-500 to-accent-600 rounded-xl p-4 text-white shadow-lg text-center">
+                    <div id="dominantEmotion" class="text-2xl font-bold capitalize">-</div>
+                    <div class="text-accent-100 text-xs uppercase tracking-wider font-semibold mt-1">Mood</div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="/static/emotions/js/video-session.js"></script>
-</body>
+<!-- Mindfulness Overlay (Tailwind Version) -->
+<div id="mindfulnessOverlay"
+    class="fixed inset-0 z-[100] bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-500">
+    <div class="relative mb-12">
+        <!-- Breathing Circle -->
+        <div
+            class="w-48 h-48 rounded-full bg-gradient-to-tr from-teal-200 to-emerald-100 shadow-[0_0_50px_rgba(168,230,207,0.4)] flex items-center justify-center text-6xl animate-pulse">
+            🧘
+        </div>
+        <!-- Pulse Rings -->
+        <div
+            class="absolute inset-0 rounded-full border-4 border-teal-200/30 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]">
+        </div>
+    </div>
 
-</html>
+    <div class="text-center max-w-lg px-6">
+        <h2 class="text-4xl font-bold text-emerald-100 mb-4">Take a Moment</h2>
+        <p class="text-xl text-emerald-50/80 mb-8 leading-relaxed">
+            We noticed some stress. Let's pause and breathe.<br>
+            <span class="block mt-4 font-medium text-white">Inhale... Exhale...</span>
+        </p>
+
+        <button onclick="videoSessionManager.dismissMindfulness()"
+            class="bg-transparent border-2 border-emerald-200 text-emerald-100 px-8 py-3 rounded-full text-lg font-medium hover:bg-emerald-200 hover:text-emerald-900 hover:scale-105 transition-all duration-300">
+            I'm Feeling Better
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Helper to toggle placeholder visibility
+    document.getElementById('videoFile').addEventListener('change', function () {
+        if (this.files.length > 0) {
+            document.getElementById('videoPlaceholder').classList.add('hidden');
+            document.getElementById('videoInfo').classList.remove('hidden');
+        }
+    });
+
+    // Re-linking the external JS file
+</script>
+<script src="/static/emotions/js/video-session.js"></script>
+{% endblock %}

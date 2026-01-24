@@ -1,193 +1,140 @@
+{% extends 'emotions/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Sessions</title>
-    <link rel="stylesheet" href="/static/emotions/css/themes.css">
-    <link rel="stylesheet" href="/static/emotions/css/admin-common.css">
-    <style>
-        .session-card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s;
-            cursor: pointer;
-        }
+{% block title %}Session History | Emotion AI{% endblock %}
 
-        .session-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
-        }
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-800">My Sessions</h1>
+            <p class="text-slate-500">Track your emotional journey over time</p>
+        </div>
+        <a href="{% url 'user_dashboard' %}" class="btn-primary flex items-center justify-center gap-2">
+            <span>🎬</span> Watch New Video
+        </a>
+    </div>
 
-        .session-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .session-title {
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .session-date {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .session-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .stat-item {
-            text-align: center;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .stat-value {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .stat-label {
-            font-size: 0.85em;
-            color: #666;
-            margin-top: 5px;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 500;
-        }
-
-        .status-completed {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-incomplete {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #666;
-        }
-
-        .empty-state-icon {
-            font-size: 4em;
-            margin-bottom: 20px;
-        }
-    </style>
-</head>
-
-<body>
-    <div class="navbar">
-        <h1>📊 My Sessions</h1>
-        <div class="navbar-right">
-            <a href="{% url 'user_dashboard' %}">Video Library</a>
-            <span>Welcome, {{ user.username }}</span>
-            <a href="{% url 'logout' %}">Logout</a>
+    <!-- Sessions List -->
+    <div id="sessionsList" class="space-y-4">
+        <!-- Loading State -->
+        <div class="space-y-4 animate-pulse">
+            {% for i in "123" %}
+            <div class="bg-white rounded-xl h-32 w-full"></div>
+            {% endfor %}
         </div>
     </div>
 
-    <div class="container">
-        <div class="header-actions">
-            <h2>Session History</h2>
-            <a href="{% url 'user_dashboard' %}" class="btn btn-primary">🎬 Watch New Video</a>
-        </div>
-
-        <div id="sessionsList"></div>
-        <div id="emptyState" class="empty-state" style="display: none;">
-            <div class="empty-state-icon">📭</div>
-            <h3>No Sessions Yet</h3>
-            <p>You haven't watched any videos yet. Start by selecting a video from the library!</p>
-            <a href="{% url 'user_dashboard' %}" class="btn btn-primary" style="margin-top: 20px;">Browse Videos</a>
-        </div>
+    <!-- Empty State -->
+    <div id="emptyState"
+        class="hidden text-center py-20 px-6 bg-white rounded-2xl border border-dashed border-gray-300">
+        <div class="text-6xl mb-6">📭</div>
+        <h3 class="text-xl font-bold text-slate-800 mb-2">No Sessions Yet</h3>
+        <p class="text-slate-500 mb-8 max-w-sm mx-auto">You haven't watched any videos yet. Start by selecting a video
+            from the library!</p>
+        <a href="{% url 'user_dashboard' %}" class="btn-primary inline-flex">Browse Videos</a>
     </div>
+</div>
+{% endblock %}
 
-    <script>
-        async function loadSessions() {
-            try {
-                const response = await fetch('/api/sessions/');
-                const data = await response.json();
+{% block scripts %}
+<script>
+    async function loadSessions() {
+        try {
+            const response = await fetch('/api/sessions/');
+            const data = await response.json();
 
-                const sessions = data.results || data;
+            const sessions = data.results || data;
 
-                if (!sessions || sessions.length === 0) {
-                    document.getElementById('emptyState').style.display = 'block';
-                    return;
-                }
+            // Hide Loading Skeletons
+            const container = document.getElementById('sessionsList');
+            container.innerHTML = '';
 
-                const container = document.getElementById('sessionsList');
-                container.innerHTML = sessions.map(session => {
-                    const date = new Date(session.started_at).toLocaleString();
-                    const summary = session.emotion_summary || {};
-                    const isCompleted = session.is_completed;
-
-                    return `
-                        <div class="session-card" onclick="viewReport(${session.session_id})">
-                            <div class="session-header">
-                                <div>
-                                    <div class="session-title">🎬 ${session.video_title || 'Unknown Video'}</div>
-                                    <div class="session-date">${date}</div>
-                                </div>
-                                <span class="status-badge ${isCompleted ? 'status-completed' : 'status-incomplete'}">
-                                    ${isCompleted ? '✓ Completed' : '⏸ Incomplete'}
-                                </span>
-                            </div>
-                            
-                            ${isCompleted ? `
-                                <div class="session-stats">
-                                    <div class="stat-item">
-                                        <div class="stat-value">${summary.total_captures || 0}</div>
-                                        <div class="stat-label">Captures</div>
-                                    </div>
-                                    <div class="stat-item">
-                                        <div class="stat-value">${summary.dominant_emotion || 'N/A'}</div>
-                                        <div class="stat-label">Dominant Emotion</div>
-                                    </div>
-                                    <div class="stat-item">
-                                        <div class="stat-value">${Object.keys(summary.counts || {}).length}</div>
-                                        <div class="stat-label">Emotions Detected</div>
-                                    </div>
-                                </div>
-                            ` : '<p style="color: #856404; margin-top: 10px;">⚠️ This session was not completed</p>'}
-                        </div>
-                    `;
-                }).join('');
-
-            } catch (error) {
-                console.error('Error loading sessions:', error);
-                document.getElementById('sessionsList').innerHTML =
-                    '<p style="text-align: center; color: #dc3545; padding: 40px;">Error loading sessions. Please refresh the page.</p>';
+            if (!sessions || sessions.length === 0) {
+                document.getElementById('emptyState').classList.remove('hidden');
+                return;
             }
+
+            container.innerHTML = sessions.map(session => {
+                const date = new Date(session.started_at).toLocaleString(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short'
+                });
+                const summary = session.emotion_summary || {};
+                const isCompleted = session.is_completed;
+
+                return `
+                    <div class="group bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:shadow-lg hover:border-brand-200 transition-all cursor-pointer relative overflow-hidden" onclick="viewReport(${session.session_id})">
+                        <!-- Decorative gradient on hover -->
+                        <div class="absolute inset-0 bg-gradient-to-r from-brand-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        
+                        <div class="relative flex flex-col md:flex-row justify-between md:items-center gap-6">
+                            <!-- Left: Title & Date -->
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    🎬 ${session.video_title || 'Unknown Video'}
+                                </h3>
+                                <div class="text-sm text-slate-500 mt-1 flex items-center gap-2">
+                                    <span>📅 ${date}</span>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isCompleted ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}">
+                                        ${isCompleted ? '✓ Completed' : '⏸ Incomplete'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            ${isCompleted ? `
+                                <!-- Stats Grid -->
+                                <div class="flex-1 max-w-xl grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <div class="text-center md:text-left bg-white/50 p-2 rounded-lg">
+                                        <div class="text-2xl font-bold text-brand-600">${summary.total_captures || 0}</div>
+                                        <div class="text-xs text-slate-500 font-medium uppercase tracking-wide">Captures</div>
+                                    </div>
+                                    <div class="text-center md:text-left bg-white/50 p-2 rounded-lg">
+                                        <div class="text-2xl font-bold text-slate-700 capitalize">${summary.dominant_emotion || '-'}</div>
+                                        <div class="text-xs text-slate-500 font-medium uppercase tracking-wide">Dominant</div>
+                                    </div>
+                                    <div class="text-center md:text-left bg-white/50 p-2 rounded-lg hidden sm:block">
+                                        <div class="text-2xl font-bold text-slate-700">${Object.keys(summary.counts || {}).length}</div>
+                                        <div class="text-xs text-slate-500 font-medium uppercase tracking-wide">Emotions</div>
+                                    </div>
+                                </div>
+
+                                <!-- Action -->
+                                <div class="flex items-center">
+                                    <button onclick="downloadPdf(event, ${session.session_id})" class="text-slate-400 hover:text-brand-600 hover:bg-brand-50 p-2 rounded-lg transition-colors z-10" title="Download Report">
+                                        📄 <span class="hidden md:inline text-sm ml-1">PDF</span>
+                                    </button>
+                                    <div class="text-brand-400 group-hover:translate-x-1 transition-transform ml-2">
+                                        ➔
+                                    </div>
+                                </div>
+                            ` : `
+                                <div class="text-amber-600 text-sm font-medium bg-amber-50 px-4 py-2 rounded-lg border border-amber-100">
+                                    ⚠️ Session Incomplete
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+        } catch (error) {
+            console.error('Error loading sessions:', error);
+            document.getElementById('sessionsList').innerHTML =
+                '<div class="p-8 text-center bg-red-50 text-red-600 rounded-xl border border-red-200">Failed to load sessions. Please try refreshing.</div>';
         }
+    }
 
-        function viewReport(sessionId) {
-            window.location.href = `/report/${sessionId}/`;
-        }
+    function viewReport(sessionId) {
+        window.location.href = `/report/${sessionId}/`;
+    }
 
-        loadSessions();
-    </script>
-</body>
+    function downloadPdf(event, sessionId) {
+        event.stopPropagation();
+        window.location.href = `/report/${sessionId}/pdf/`;
+    }
 
-</html>
+    loadSessions();
+</script>
+{% endblock %}

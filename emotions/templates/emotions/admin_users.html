@@ -1,154 +1,135 @@
+{% extends 'emotions/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Users</title>
-    <link rel="stylesheet" href="/static/emotions/css/themes.css">
-    <link rel="stylesheet" href="/static/emotions/css/admin-common.css">
-    <link rel="stylesheet" href="/static/emotions/css/admin-users.css">
-</head>
+{% block title %}Manage Users | Emotion AI{% endblock %}
 
-<body>
-    <div class="navbar">
-        <h1>👥 Manage Users</h1>
-        <div class="navbar-right">
-            <a href="{% url 'admin_dashboard' %}">Dashboard</a>
-            <a href="{% url 'logout' %}">Logout</a>
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-800">User Management</h1>
+            <p class="text-slate-500">Manage accounts and permissions</p>
         </div>
+        <button onclick="showCreateModal()" class="btn-primary flex items-center gap-2 self-start md:self-auto">
+            <span>➕</span> Create User
+        </button>
     </div>
 
-    <div class="container">
-        <div class="page-header">
-            <div class="header-content">
-                <div class="header-title">
-                    <h2>User Management</h2>
-                    <p class="header-subtitle">Manage user accounts, permissions, and access control</p>
-                </div>
-                <button class="btn btn-primary btn-create" onclick="showCreateModal()">
-                    <span class="btn-icon">➕</span>
-                    <span>Create User</span>
-                </button>
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex items-center gap-4">
+            <div
+                class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl font-bold">
+                👥</div>
+            <div>
+                <div id="totalUsers" class="text-2xl font-bold text-slate-800">0</div>
+                <div class="text-sm text-slate-500">Total Users</div>
             </div>
         </div>
-
-        <div class="stats-overview">
-            <div class="stat-box">
-                <div class="stat-icon">👥</div>
-                <div class="stat-info">
-                    <div class="stat-value" id="totalUsers">0</div>
-                    <div class="stat-label">Total Users</div>
-                </div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-icon">✓</div>
-                <div class="stat-info">
-                    <div class="stat-value" id="activeUsers">0</div>
-                    <div class="stat-label">Active Users</div>
-                </div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-icon">✗</div>
-                <div class="stat-info">
-                    <div class="stat-value" id="inactiveUsers">0</div>
-                    <div class="stat-label">Inactive Users</div>
-                </div>
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex items-center gap-4">
+            <div
+                class="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xl font-bold">
+                ✓</div>
+            <div>
+                <div id="activeUsers" class="text-2xl font-bold text-slate-800">0</div>
+                <div class="text-sm text-slate-500">Active Users</div>
             </div>
         </div>
-
-        <div class="table-container">
-            <div class="table-header">
-                <h3>User Directory</h3>
-                <div class="table-actions">
-                    <input type="text" id="searchInput" placeholder="🔍 Search users..." class="search-input">
-                </div>
-            </div>
-            <div class="table-wrapper">
-                <table id="usersTable">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Username</th>
-                            <th>Email</th>
-                            <th>Full Name</th>
-                            <th>Status</th>
-                            <th>Sessions</th>
-                            <th class="actions-column">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="usersBody"></tbody>
-                </table>
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex items-center gap-4">
+            <div
+                class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xl font-bold">
+                🔒</div>
+            <div>
+                <div id="inactiveUsers" class="text-2xl font-bold text-slate-800">0</div>
+                <div class="text-sm text-slate-500">Inactive Users</div>
             </div>
         </div>
     </div>
 
-    <!-- Create/Edit User Modal -->
-    <div id="userModal" class="modal">
-        <div class="modal-content modal-professional">
-            <div class="modal-header">
-                <h2 id="modalTitle">Create New User</h2>
-                <span class="close" onclick="closeUserModal()">&times;</span>
+    <!-- Users Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h2 class="font-bold text-lg text-slate-700">User Directory</h2>
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">🔍</span>
+                <input type="text" id="searchInput" placeholder="Search users..."
+                    class="pl-10 pr-4 py-2 rounded-xl border-gray-200 text-sm focus:border-brand-500 focus:ring-brand-500 w-full sm:w-64">
             </div>
-            <form id="userForm">
-                <div class="modal-body">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="username">
-                                <span class="label-icon">👤</span>
-                                Username <span class="required">*</span>
-                            </label>
-                            <input type="text" id="username" placeholder="Enter username" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="email">
-                                <span class="label-icon">📧</span>
-                                Email Address
-                            </label>
-                            <input type="email" id="email" placeholder="user@example.com">
-                        </div>
-                    </div>
+        </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="firstName">
-                                <span class="label-icon">✏️</span>
-                                First Name
-                            </label>
-                            <input type="text" id="firstName" placeholder="Enter first name">
-                        </div>
-                        <div class="form-group">
-                            <label for="lastName">
-                                <span class="label-icon">✏️</span>
-                                Last Name
-                            </label>
-                            <input type="text" id="lastName" placeholder="Enter last name">
-                        </div>
-                    </div>
-
-                    <div class="form-group" id="passwordGroup">
-                        <label for="password">
-                            <span class="label-icon">🔒</span>
-                            Password <span class="required">*</span>
-                        </label>
-                        <input type="password" id="password" placeholder="Enter secure password">
-                        <small class="form-hint">Minimum 8 characters recommended</small>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <span class="btn-icon">💾</span>
-                        <span>Save User</span>
-                    </button>
-                </div>
-            </form>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 text-xs uppercase text-gray-500 font-semibold border-b border-gray-100">
+                        <th class="px-6 py-4">User</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4">Joined</th>
+                        <th class="px-6 py-4 text-center">Sessions</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersBody" class="divide-y divide-gray-100 text-sm">
+                    <!-- Users injected via JS -->
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <script src="/static/emotions/js/admin-users.js"></script>
-</body>
+    <!-- Create/Edit Modal -->
+    <div id="userModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeUserModal()"></div>
+        <div class="relative min-h-screen flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-slide-up">
+                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h2 id="modalTitle" class="font-bold text-lg text-slate-700">Create New User</h2>
+                    <button onclick="closeUserModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
 
-</html>
+                <form id="userForm" class="p-6 space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Username</label>
+                            <input type="text" id="username" required
+                                class="w-full rounded-xl border-gray-300 focus:border-brand-500 focus:ring-brand-500">
+                        </div>
+
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                            <input type="email" id="email"
+                                class="w-full rounded-xl border-gray-300 focus:border-brand-500 focus:ring-brand-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">First Name</label>
+                            <input type="text" id="firstName"
+                                class="w-full rounded-xl border-gray-300 focus:border-brand-500 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Last Name</label>
+                            <input type="text" id="lastName"
+                                class="w-full rounded-xl border-gray-300 focus:border-brand-500 focus:ring-brand-500">
+                        </div>
+
+                        <div class="col-span-2" id="passwordGroup">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                            <input type="password" id="password"
+                                class="w-full rounded-xl border-gray-300 focus:border-brand-500 focus:ring-brand-500">
+                            <p class="text-xs text-gray-500 mt-1">Leave blank to keep existing password when editing</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-4">
+                        <button type="button" onclick="closeUserModal()" class="btn-secondary">Cancel</button>
+                        <button type="submit" class="btn-primary">Save User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'emotions/js/admin-users.js' %}?v=3"></script>
+{% endblock %}
