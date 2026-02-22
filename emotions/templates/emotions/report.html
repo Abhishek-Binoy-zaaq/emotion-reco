@@ -353,10 +353,10 @@
 
             // Convert emotions to numeric values for plotting
             const emotionMap = {
-                'happy': 6, 'surprise': 5, 'neutral': 4,
+                'happy': 7, 'surprise': 6, 'neutral': 5, 'contempt': 4,
                 'fear': 3, 'sad': 2, 'angry': 1, 'disgust': 0
             };
-            const emotionValues = emotions.map(e => emotionMap[e] || 3);
+            const emotionValues = emotions.map(e => emotionMap[e] !== undefined ? emotionMap[e] : 4);
             const colors = emotions.map(e => getEmotionColor(e));
 
             if (timelineChart) timelineChart.destroy();
@@ -384,7 +384,7 @@
                         y: {
                             ticks: {
                                 callback: function (value) {
-                                    const labels = ['Disgust', 'Angry', 'Sad', 'Fear', 'Neutral', 'Surprise', 'Happy'];
+                                    const labels = ['Disgust', 'Angry', 'Sad', 'Fear', 'Contempt', 'Neutral', 'Surprise', 'Happy'];
                                     return labels[value] || '';
                                 }
                             }
@@ -413,7 +413,7 @@
 
         function getEmotionEmoji(emotion) {
             const emojis = {
-                'happy': '😊', 'sad': '😢', 'angry': '😠',
+                'happy': '😊', 'sad': '😢', 'angry': '😠', 'contempt': '😒',
                 'surprise': '😲', 'fear': '😨', 'disgust': '🤢', 'neutral': '😐'
             };
             return emojis[emotion] || '😶';
@@ -421,7 +421,7 @@
 
         function getEmotionColor(emotion) {
             const colors = {
-                'happy': '#FFD700', 'sad': '#4169E1', 'angry': '#DC143C',
+                'happy': '#FFD700', 'sad': '#4169E1', 'angry': '#DC143C', 'contempt': '#8B4513',
                 'surprise': '#FF69B4', 'fear': '#9370DB', 'disgust': '#32CD32', 'neutral': '#A9A9A9'
             };
             return colors[emotion] || '#667eea';

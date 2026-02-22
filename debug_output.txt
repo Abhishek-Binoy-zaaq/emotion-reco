@@ -1,0 +1,6 @@
+CHECKPOINT KEY: features.0.0.weight
+MODEL KEY:      mobilenet.features.0.0.weight
+Strict load FAILED.
+Trying to load into model.mobilenet...
+Load into model.mobilenet SUCCEEDED.
+Max Prob: 0.41377919912338257, Class: 4

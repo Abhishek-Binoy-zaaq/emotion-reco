@@ -23,6 +23,17 @@
         </div>
     </div>
 
+    <!-- Processing Banner -->
+    <div id="processingBanner" class="hidden bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r">
+        <div class="flex items-center gap-3">
+            <svg class="animate-spin h-5 w-5 text-amber-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span id="processingText" class="text-amber-800 font-medium">Processing frames...</span>
+        </div>
+    </div>
+
     <!-- Summary Section -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
         <h2 class="font-bold text-lg text-slate-700 mb-6 flex items-center gap-2">
@@ -65,17 +76,35 @@
     </div>
 
     <!-- Charts Section -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-        <h2 class="font-bold text-lg text-slate-700 mb-6 flex items-center gap-2">
-            <span>🎭</span> Emotion Distribution
-        </h2>
-        <div class="chart-container relative h-80 w-full flex items-center justify-center">
-            <canvas id="emotionChart"></canvas>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Distribution Chart -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h2 class="font-bold text-lg text-slate-700 mb-6 flex items-center gap-2">
+                <span>🎭</span> Emotion Distribution
+            </h2>
+            <div class="chart-container relative h-80 w-full flex items-center justify-center">
+                <canvas id="emotionChart"></canvas>
+            </div>
+            <div id="noDataMessage" class="hidden text-center py-12 text-slate-400">
+                <div class="text-5xl mb-4">📭</div>
+                <h3 class="text-lg font-medium text-slate-600">No Data Available</h3>
+                <p class="text-sm mt-1">This session has no captured frames.</p>
+            </div>
         </div>
-        <div id="noDataMessage" class="hidden text-center py-12 text-slate-400">
-            <div class="text-5xl mb-4">📭</div>
-            <h3 class="text-lg font-medium text-slate-600">No Data Available</h3>
-            <p class="text-sm mt-1">This session has no captured frames.</p>
+
+        <!-- Timeline Chart -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+            <h2 class="font-bold text-lg text-slate-700 mb-6 flex items-center gap-2">
+                <span>⏱️</span> Emotion Timeline
+            </h2>
+            <div class="chart-container relative h-80 w-full flex items-center justify-center">
+                <canvas id="timelineChart"></canvas>
+            </div>
+            <div id="noTimelineMessage" class="hidden text-center py-12 text-slate-400">
+                <div class="text-5xl mb-4">📭</div>
+                <h3 class="text-lg font-medium text-slate-600">No Data Available</h3>
+                <p class="text-sm mt-1">This session has no captured frames.</p>
+            </div>
         </div>
     </div>
 
@@ -95,6 +124,8 @@
 <script>
     const sessionId = {{ session_id }};
     let emotionChart = null;
+    let timelineChart = null;
+    let refreshTimer = null;
 
     async function loadReport() {
         try {
@@ -108,12 +139,39 @@
             document.getElementById('dominantEmotion').textContent = data.dominant_emotion || 'N/A';
             document.getElementById('engagementScore').textContent = data.engagement_score + '%';
 
+            // Handle processing banner
+            const banner = document.getElementById('processingBanner');
+            if (data.still_processing) {
+                const processed = data.processed_count || 0;
+                const total = data.total_captures || 0;
+                banner.querySelector('#processingText').textContent =
+                    `Processing frames: ${processed}/${total} complete. Results will update automatically.`;
+                banner.classList.remove('hidden');
+                // Auto-refresh every 3 seconds while still processing
+                if (!refreshTimer) {
+                    refreshTimer = setInterval(loadReport, 3000);
+                }
+            } else {
+                banner.classList.add('hidden');
+                if (refreshTimer) {
+                    clearInterval(refreshTimer);
+                    refreshTimer = null;
+                }
+            }
+
             // Show message if no data
             if (data.total_captures === 0) {
                 document.getElementById('emotionChart').classList.add('hidden');
                 document.getElementById('noDataMessage').classList.remove('hidden');
+                document.getElementById('timelineChart').classList.add('hidden');
+                document.getElementById('noTimelineMessage').classList.remove('hidden');
             } else {
+                document.getElementById('noDataMessage').classList.add('hidden');
+                document.getElementById('emotionChart').classList.remove('hidden');
+                document.getElementById('noTimelineMessage').classList.add('hidden');
+                document.getElementById('timelineChart').classList.remove('hidden');
                 createEmotionChart(data.emotion_stats);
+                createTimelineChart(data.emotion_timeline);
             }
         } catch (error) {
             console.error('Error loading report:', error);
@@ -159,9 +217,75 @@
         });
     }
 
+    function createTimelineChart(timeline) {
+        const ctx = document.getElementById('timelineChart').getContext('2d');
+
+        const timestamps = timeline.map(t => t.timestamp.toFixed(1));
+        const emotions = timeline.map(t => t.expression);
+
+        // Convert emotions to numeric values for plotting
+        const emotionMap = {
+            'happy': 7, 'surprise': 6, 'neutral': 5, 'contempt': 4,
+            'fear': 3, 'sad': 2, 'angry': 1, 'disgust': 0
+        };
+        const emotionValues = emotions.map(e => emotionMap[e] !== undefined ? emotionMap[e] : 4);
+        const colors = emotions.map(e => getEmotionColor(e));
+
+        if (timelineChart) timelineChart.destroy();
+
+        timelineChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: timestamps,
+                datasets: [{
+                    label: 'Emotion Over Time',
+                    data: emotionValues,
+                    borderColor: '#6366f1',
+                    backgroundColor: colors,
+                    pointBackgroundColor: colors,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function (value) {
+                                const labels = ['Disgust', 'Angry', 'Sad', 'Fear', 'Contempt', 'Neutral', 'Surprise', 'Happy'];
+                                return labels[value] || '';
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Time (s)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const emotion = emotions[context.dataIndex];
+                                return emotion ? emotion.charAt(0).toUpperCase() + emotion.slice(1) : '';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     function getEmotionColor(emotion) {
         const colors = {
-            'happy': '#FFD700', 'sad': '#3B82F6', 'angry': '#EF4444',
+            'happy': '#FDE047', 'sad': '#3B82F6', 'angry': '#EF4444',
             'surprise': '#EC4899', 'fear': '#8B5CF6', 'disgust': '#10B981', 'neutral': '#9CA3AF'
         };
         return colors[emotion] || '#94a3b8';

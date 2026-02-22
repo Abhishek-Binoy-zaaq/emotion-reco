@@ -266,7 +266,7 @@
 
         async function startSession() {
             if (isRecording || sessionId || isStarting) return;
-            
+
             isStarting = true;
             updateStatus('Creating session...', 'info');
 
@@ -294,7 +294,7 @@
                 if (videoPlayer.paused) {
                     videoPlayer.play();
                 }
-                
+
                 // Reduced to 1 capture per second to avoid overwhelming the server
                 captureInterval = setInterval(captureFrame, 1000);
 
@@ -307,7 +307,7 @@
         }
 
         startBtn.addEventListener('click', startSession);
-        
+
         videoPlayer.addEventListener('play', startSession);
 
         stopBtn.addEventListener('click', async () => {
@@ -374,30 +374,25 @@
         function updateStats(data) {
             document.getElementById('captureCount').textContent = captureCount;
 
-            // Check if preprocessed_version exists (it contains the analysis results)
-            const analysis = data.preprocessed_version;
-
-            if (analysis && analysis.expression && analysis.expression !== 'error' && analysis.expression !== 'no_face_detected') {
-                successfulDetections++;
-                emotionCounts[analysis.expression] = (emotionCounts[analysis.expression] || 0) + 1;
-
-                const emoji = getEmotionEmoji(analysis.expression);
+            // In our new Celery Architecture, the frame is saved instantly but
+            // processed in the background. The final true tally will be on the Report page.
+            if (data.status === 'processing_in_background') {
                 currentEmotion.innerHTML = `
-                    <div class="emotion-indicator">
-                        ${emoji} ${analysis.expression} (${analysis.expression_confidence.toFixed(1)}%)
+                    <div class="emotion-indicator" style="background: #e3f2fd; color: #1976d2;">
+                        ⏳ Processing frame in background...
                     </div>
                 `;
-            } else if (!analysis) {
-                // Handle case where no face was detected or analysis failed
-                currentEmotion.innerHTML = `
-                    <div class="emotion-indicator" style="background: #ccc;">
-                        😐 No face detected
-                    </div>
-                `;
-            }
-
-            if (Object.keys(emotionCounts).length > 0) {
-                // Optional: Update some live chart or stats if needed
+            } else {
+                // Fallback if analyzing happened immediately or preprocessed_version exists
+                const analysis = data.preprocessed_version;
+                if (analysis && analysis.expression && analysis.expression !== 'error') {
+                    const emoji = getEmotionEmoji(analysis.expression);
+                    currentEmotion.innerHTML = `
+                         <div class="emotion-indicator">
+                             ${emoji} ${analysis.expression} (${analysis.expression_confidence.toFixed(1)}%)
+                         </div>
+                     `;
+                }
             }
         }
 
