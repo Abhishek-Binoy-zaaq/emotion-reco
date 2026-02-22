@@ -1,0 +1,9 @@
+Running analysis on: C:\Users\abhis\tutorials\media\captures\capture_1771143401226.jpg
+
+=== Analysis Results ===
+Success: True
+Face Detected: True
+Expression: happy
+Confidence: 99.88371276855469
+All Emotions: {'angry': np.float32(5.002433e-13), 'disgust': np.float32(3.266162e-15), 'fear': np.float32(7.007848e-10), 'happy': np.float32(99.88371), 'sad': np.float32(0.000286638), 'surprise': np.float32(6.188409e-12), 'neutral': np.float32(0.11599101)}
+[OK] Preprocessed image saved at: C:\Users\abhis\tutorials\media\captures\capture_1771143401226_preprocessed.jpg

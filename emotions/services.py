@@ -140,10 +140,10 @@ class SessionAnalyticsService:
         Returns:
             dict: Comprehensive session analytics
         """
-        captures = session.preprocessed_images.all()
+        captures = session.preprocessed_images.select_related('captured_frame').all()
         
         # Basic stats
-        total_captures = captures.count()
+        total_captures = session.captures.count()
         successful_detections = 0
         
         # Emotion timeline

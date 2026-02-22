@@ -309,35 +309,36 @@ class SessionReportViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
-        """Mark a session as completed and generate report"""
+        """Mark a session as completed"""
         session = self.get_object()
         session.is_completed = True
         session.completed_at = timezone.now()
-        
-        # Generate and cache the report
-        report_data = SessionAnalyticsService.generate_session_report(session)
-        session.report_data = report_data
-        
-        # Save dominant emotion to the new session_report field
-        session.session_report = report_data.get('dominant_emotion')
-        
+        # Don't generate report here - background threads are still processing frames.
+        # The report will be generated fresh when the user views it.
         session.save()
         
-        return Response({'status': 'completed', 'report': report_data})
+        return Response({'status': 'completed'})
     
     @action(detail=True, methods=['get'])
     def report(self, request, pk=None):
         """Get comprehensive analytics report for a session"""
         session = self.get_object()
         
-        # Use cached report if available, otherwise generate new one
-        if session.report_data:
-            return Response(session.report_data)
+        # Check if there are still unprocessed frames
+        total_captures = session.captures.count()
+        processed_count = session.preprocessed_images.count()
+        still_processing = total_captures > 0 and processed_count < total_captures
         
-        # Generate report if not cached
+        # Always generate a fresh report from the DB
         report_data = SessionAnalyticsService.generate_session_report(session)
-        session.report_data = report_data
-        session.save()
+        report_data['still_processing'] = still_processing
+        report_data['processed_count'] = processed_count
+        
+        # Cache the report only when all frames are processed
+        if not still_processing:
+            session.report_data = report_data
+            session.session_report = report_data.get('dominant_emotion')
+            session.save()
         
         return Response(report_data)
     
@@ -421,62 +422,26 @@ class CapturedFrameViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def create(self, request, *args, **kwargs):
-        """Create a new captured frame and analyze it"""
-        
+        """Create a new captured frame and process it for analysis"""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instance = serializer.save()
         
-        # Analyze the captured frame (and save cropped face if found)
-        analysis_result = EnhancedEmotionDetectionService.analyze_image_with_preprocessing(
-            instance.image.path,
-            save_preprocessed=True
+        # Process in a background thread (replaces unreliable Celery on Windows)
+        import threading
+        from .tasks import process_captured_frame_task
+        thread = threading.Thread(
+            target=process_captured_frame_task,
+            args=(instance.id,),
+            daemon=True
         )
-        
-        if analysis_result['success']:
-            # Save analysis results to new PreprocessedImage model
-            preprocessed_path = analysis_result.get('preprocessed_path')
-            if preprocessed_path:
-                try:
-                    import os
-                    from django.conf import settings
-                    from .models import PreprocessedImage
-                    
-                    rel_path = os.path.relpath(preprocessed_path, settings.MEDIA_ROOT)
-                    
-                    # Create PreprocessedImage instance
-                    PreprocessedImage.objects.create(
-                        captured_frame=instance,
-                        image=rel_path,
-                        expression=analysis_result['expression'],
-                        expression_confidence=analysis_result['confidence'],
-                        all_expressions=analysis_result['all_emotions'],
-                        # Denormalized fields
-                        session=instance.session,
-                        user=instance.session.user,
-                        video=instance.session.video
-                    )
-                    
-                    print(f"[OK] Saved analysis to PreprocessedImage: {rel_path}", flush=True)
-                except Exception as e:
-                    print(f"[FAIL] Failed to save analysis results: {e}", flush=True)
-        
-        # Custom response construction to flatten the structure for the frontend
-        # The frontend expects 'expression' and 'confidence' at the root level
-        
-        # Refresh instance to get the related preprocessed object we just created
-        instance.refresh_from_db()
-        
+        thread.start()
+
+        # Return whatever we know so far. The frontend will get the
+        # detailed emotion stats on the final /report/ call.
         data = self.get_serializer(instance).data
-        
-        # Flatten preprocessed data if available
-        if hasattr(instance, 'preprocessed_version') and instance.preprocessed_version:
-            preprocessed = instance.preprocessed_version
-            data['expression'] = preprocessed.expression
-            data['expression_confidence'] = preprocessed.expression_confidence
-            data['all_expressions'] = preprocessed.all_expressions
-            data['preprocessed_path'] = preprocessed.image.url if preprocessed.image else None
-            
+        data['status'] = 'processing_in_background'
+
         return Response(data, status=status.HTTP_201_CREATED)
 
 

@@ -106,7 +106,7 @@ class SessionReport(models.Model):
 
         # 2. Fallback to direct relation
         preprocessed = self.preprocessed_images.all()
-        total_captures = preprocessed.count()
+        total_captures = self.captures.count()
         
         if total_captures == 0:
             return {
@@ -132,7 +132,7 @@ class SessionReport(models.Model):
         return {
             'counts': emotion_counts,
             'percentages': emotion_percentages,
-            'total_captures': valid_captures,
+            'total_captures': total_captures,
             'dominant_emotion': max(emotion_counts.items(), key=lambda x: x[1])[0] if emotion_counts else None
         }
     
