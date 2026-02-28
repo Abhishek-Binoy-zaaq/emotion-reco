@@ -348,33 +348,34 @@
         function createTimelineChart(timeline) {
             const ctx = document.getElementById('timelineChart').getContext('2d');
 
-            const timestamps = timeline.map(t => t.timestamp.toFixed(1));
-            const emotions = timeline.map(t => t.expression);
-
-            // Convert emotions to numeric values for plotting
             const emotionMap = {
-                'happy': 7, 'surprise': 6, 'neutral': 5, 'contempt': 4,
+                'happy': 6, 'surprise': 5, 'neutral': 4,
                 'fear': 3, 'sad': 2, 'angry': 1, 'disgust': 0
             };
-            const emotionValues = emotions.map(e => emotionMap[e] !== undefined ? emotionMap[e] : 4);
-            const colors = emotions.map(e => getEmotionColor(e));
+
+            // Map data to {x, y} coordinates for a linear true-timeline scale
+            const dataPoints = timeline.map(t => ({
+                x: t.timestamp,
+                y: emotionMap[t.expression] !== undefined ? emotionMap[t.expression] : 4
+            }));
+            const colors = timeline.map(t => getEmotionColor(t.expression));
 
             if (timelineChart) timelineChart.destroy();
 
             timelineChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: timestamps,
                     datasets: [{
                         label: 'Emotion Over Time',
-                        data: emotionValues,
+                        data: dataPoints,
                         borderColor: '#667eea',
                         backgroundColor: colors,
                         pointBackgroundColor: colors,
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
                         pointRadius: 5,
-                        tension: 0.4
+                        stepped: true, // Use a stepped line so it doesn't imply intermediate emotions
+                        tension: 0
                     }]
                 },
                 options: {
@@ -382,17 +383,26 @@
                     maintainAspectRatio: false,
                     scales: {
                         y: {
+                            min: 0,
+                            max: 6,
                             ticks: {
+                                stepSize: 1,
                                 callback: function (value) {
-                                    const labels = ['Disgust', 'Angry', 'Sad', 'Fear', 'Contempt', 'Neutral', 'Surprise', 'Happy'];
+                                    const labels = ['Disgust', 'Angry', 'Sad', 'Fear', 'Neutral', 'Surprise', 'Happy'];
                                     return labels[value] || '';
                                 }
                             }
                         },
                         x: {
+                            type: 'linear', // Use true numerical spacing for proportional time gaps
                             title: {
                                 display: true,
                                 text: 'Time (seconds)'
+                            },
+                            ticks: {
+                                callback: function (value) {
+                                    return value + 's';
+                                }
                             }
                         }
                     },
@@ -400,9 +410,12 @@
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
+                                title: function (tooltipItems) {
+                                    return 'Time: ' + tooltipItems[0].parsed.x.toFixed(1) + 's';
+                                },
                                 label: function (context) {
-                                    const emotion = emotions[context.dataIndex];
-                                    return emotion ? emotion.charAt(0).toUpperCase() + emotion.slice(1) : '';
+                                    const labels = ['Disgust', 'Angry', 'Sad', 'Fear', 'Neutral', 'Surprise', 'Happy'];
+                                    return 'Emotion: ' + labels[context.parsed.y];
                                 }
                             }
                         }
@@ -413,7 +426,7 @@
 
         function getEmotionEmoji(emotion) {
             const emojis = {
-                'happy': '😊', 'sad': '😢', 'angry': '😠', 'contempt': '😒',
+                'happy': '😊', 'sad': '😢', 'angry': '😠',
                 'surprise': '😲', 'fear': '😨', 'disgust': '🤢', 'neutral': '😐'
             };
             return emojis[emotion] || '😶';
@@ -421,7 +434,7 @@
 
         function getEmotionColor(emotion) {
             const colors = {
-                'happy': '#FFD700', 'sad': '#4169E1', 'angry': '#DC143C', 'contempt': '#8B4513',
+                'happy': '#FFD700', 'sad': '#4169E1', 'angry': '#DC143C',
                 'surprise': '#FF69B4', 'fear': '#9370DB', 'disgust': '#32CD32', 'neutral': '#A9A9A9'
             };
             return colors[emotion] || '#667eea';
