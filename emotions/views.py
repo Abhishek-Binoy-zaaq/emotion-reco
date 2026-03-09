@@ -329,13 +329,23 @@ class SessionReportViewSet(viewsets.ModelViewSet):
         processed_count = session.preprocessed_images.count()
         still_processing = total_captures > 0 and processed_count < total_captures
         
-        # Always generate a fresh report from the DB
+        # If we already have a completely cached report, use it.
+        # This prevents 0 values if original captures are cleaned from the DB.
+        if session.report_data and not still_processing:
+            
+            # For backward compatibility, ensure still_processing flags are there
+            report_data = session.report_data
+            report_data['still_processing'] = False
+            report_data['processed_count'] = processed_count
+            return Response(report_data)
+        
+        # Generate a fresh report from the DB if captures still exist or processing is ongoing
         report_data = SessionAnalyticsService.generate_session_report(session)
         report_data['still_processing'] = still_processing
         report_data['processed_count'] = processed_count
         
-        # Cache the report only when all frames are processed
-        if not still_processing:
+        # Cache the report only when all frames are processed and we have valid total captures
+        if not still_processing and total_captures > 0:
             session.report_data = report_data
             session.session_report = report_data.get('dominant_emotion')
             session.save()

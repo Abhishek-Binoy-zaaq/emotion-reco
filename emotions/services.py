@@ -140,7 +140,7 @@ class SessionAnalyticsService:
         Returns:
             dict: Comprehensive session analytics
         """
-        captures = session.preprocessed_images.select_related('captured_frame').all()
+        captures = session.preprocessed_images.select_related('captured_frame').order_by('captured_frame__timestamp')
         
         # Basic stats
         total_captures = session.captures.count()
