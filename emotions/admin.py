@@ -58,7 +58,8 @@ class SessionReportAdmin(admin.ModelAdmin):
     get_user_name.admin_order_field = 'user__username'
     
     def capture_count(self, obj):
-        return obj.captures.count()
+        summary = obj.get_emotion_summary()
+        return summary.get('total_captures', 0)
     capture_count.short_description = 'Captures'
     
     def emotion_summary_display(self, obj):
