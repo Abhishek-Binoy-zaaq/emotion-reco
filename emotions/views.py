@@ -412,6 +412,38 @@ class SessionReportViewSet(viewsets.ModelViewSet):
             'sessions': u.session_count
         } for u in active_users]
         
+        # Video Aggregate Reports
+        all_videos = Video.objects.filter(is_active=True).annotate(
+            session_count=Count('sessions')
+        ).order_by('-session_count')
+        
+        video_reports_data = []
+        for v in all_videos:
+            v_sessions = v.sessions.filter(is_completed=True)
+            v_emotion_counts = {}
+            for s in v_sessions:
+                if s.report_data:
+                    emotion_stats = s.report_data.get('emotion_stats', {})
+                    for emotion, stats in emotion_stats.items():
+                        count = stats.get('count', 0)
+                        v_emotion_counts[emotion] = v_emotion_counts.get(emotion, 0) + count
+                else:
+                    summary = s.get_emotion_summary()
+                    for emotion, count in summary.get('counts', {}).items():
+                        v_emotion_counts[emotion] = v_emotion_counts.get(emotion, 0) + count
+            
+            dominant_emotion = None
+            if v_emotion_counts:
+                dominant_emotion = max(v_emotion_counts.items(), key=lambda x: x[1])[0]
+
+            video_reports_data.append({
+                'id': v.id,
+                'title': v.title,
+                'sessions': v.session_count,
+                'engagement': v.get_average_engagement(),
+                'dominant_emotion': dominant_emotion
+            })
+        
         return Response({
             'total_sessions': total_sessions,
             'total_users': total_users,
@@ -420,7 +452,8 @@ class SessionReportViewSet(viewsets.ModelViewSet):
             'emotion_distribution': emotion_percentages,
             'emotion_counts': all_emotion_counts,
             'popular_videos': popular_videos_data,
-            'active_users': active_users_data
+            'active_users': active_users_data,
+            'video_reports': video_reports_data
         })
 
 
@@ -457,7 +490,7 @@ class CapturedFrameViewSet(viewsets.ModelViewSet):
 
 class UserViewSet(viewsets.ModelViewSet):
     """API endpoint for user management"""
-    queryset = User.objects.filter(is_staff=False)
+    queryset = User.objects.filter(is_staff=False).annotate(session_count=Count('sessions'))
     serializer_class = UserSerializer
     permission_classes = [IsAdminUser]
     
