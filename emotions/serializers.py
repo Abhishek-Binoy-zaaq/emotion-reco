@@ -4,9 +4,11 @@ from .models import SessionReport, CapturedFrame, Video, VideoCategory, Preproce
 
 
 class UserSerializer(serializers.ModelSerializer):
+    session_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = User
-        fields = ["id", "username", "email", "first_name", "last_name", "is_staff", "is_active"]
+        fields = ["id", "username", "email", "first_name", "last_name", "is_staff", "is_active", "date_joined", "session_count"]
 
 
 class GroupSerializer(serializers.HyperlinkedModelSerializer):

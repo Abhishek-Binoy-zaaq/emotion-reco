@@ -69,6 +69,31 @@
         </div>
     </div>
 
+    <!-- Video Aggregate Report -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mt-8 mb-8">
+        <div class="p-6 border-b border-gray-100">
+            <h2 class="font-bold text-lg text-slate-700 flex items-center gap-2">
+                <span>📊</span> Video Aggregate Report
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 text-xs uppercase text-gray-500 font-semibold border-b border-gray-100">
+                        <th class="px-6 py-4">Video Title</th>
+                        <th class="px-6 py-4 text-center">Total Sessions</th>
+                        <th class="px-6 py-4 text-center">Engagement</th>
+                        <th class="px-6 py-4 text-center">Dominant Emotion</th>
+                        <th class="px-6 py-4 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="videoReports" class="divide-y divide-gray-100">
+                    <!-- Data -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- All Sessions List -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="p-6 border-b border-gray-100">
@@ -119,6 +144,7 @@
 
             createEmotionChart(data.emotion_distribution);
             displayTopVideos(data.popular_videos);
+            displayVideoReports(data.video_reports);
         } catch (error) {
             console.error('Error loading report:', error);
         }
@@ -176,6 +202,35 @@
                 <td class="px-4 py-3 text-center text-slate-600">${v.sessions}</td>
                 <td class="px-4 py-3 text-right">
                     <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-bold">${v.engagement}%</span>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function displayVideoReports(videos) {
+        const tbody = document.getElementById('videoReports');
+        if (!videos || videos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">No videos available</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = videos.map(v => `
+            <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 font-medium text-slate-800">${v.title}</td>
+                <td class="px-6 py-4 text-center font-medium">${v.sessions}</td>
+                <td class="px-6 py-4 text-center">
+                    <span class="bg-green-100 text-green-700 px-2.5 py-0.5 rounded-full text-xs font-bold">${v.engagement}%</span>
+                </td>
+                <td class="px-6 py-4 text-center capitalize">
+                    ${v.dominant_emotion ?
+                `<span class="px-2 py-1 bg-slate-100 rounded text-xs text-slate-700 font-medium">${v.dominant_emotion}</span>`
+                : '-'}
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <button class="text-brand-600 hover:text-brand-800 font-medium text-sm hover:underline" 
+                        onclick="window.open('/admin/video-report/${v.id}/', '_blank')">
+                        View Report
+                    </button>
                 </td>
             </tr>
         `).join('');
